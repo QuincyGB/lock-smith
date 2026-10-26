@@ -109,6 +109,12 @@ routes = {
 # --- app ---------------------------------------------------------------------
 app = FastAPI(title="lock-smith", version="1.0.0")
 
+# Public contact for the OpenAPI info block. x402scan / tryponcho read
+# info.contact.email for merchant pages and owner contact; the owner
+# approved publishing this address in the discovery documents
+# (2026-10-26).
+CONTACT = {"name": "Verdict Row", "email": "quincyga.brown@gmail.com"}
+
 
 def _openapi_with_ownership_proofs():
     """Default OpenAPI document plus the x402scan ownership-proof root
@@ -117,7 +123,9 @@ def _openapi_with_ownership_proofs():
     discovery.py; removing them un-verifies the listing."""
     if app.openapi_schema:
         return app.openapi_schema
-    schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
+    schema = get_openapi(
+        title=app.title, version=app.version, routes=app.routes, contact=CONTACT
+    )
     schema["x-discovery"] = {"ownershipProofs": OWNERSHIP_PROOFS}
     schema["x-agentcash-provenance"] = {"ownershipProofs": OWNERSHIP_PROOFS}
     app.openapi_schema = schema
