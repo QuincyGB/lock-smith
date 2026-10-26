@@ -143,8 +143,23 @@ app.openapi = _openapi_with_ownership_proofs
 _payment_middleware = fastapi_payment_middleware(routes, resource_server)
 
 
+_PASS_PATHS = {"/v1/audit"}
+
+
 @app.middleware("http")
 async def x402_middleware(request: Request, call_next):
+    # A call presenting a Fleet Pass id is paid from the pass ledger
+    # in StallRow: debit before the handler, refund on failure.
+    from . import fleet_pass as _fleet_pass
+
+    debit = await _fleet_pass.debit_for(request, settings.service_name, _PASS_PATHS)
+    if isinstance(debit, JSONResponse):
+        return debit
+    if debit:
+        response = await call_next(request)
+        if response.status_code >= 400:
+            await _fleet_pass.refund(debit)
+        return response
     return await _payment_middleware(request, call_next)
 
 
