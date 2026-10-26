@@ -20,11 +20,17 @@ from .config import Settings
 USDC_ASSET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 # x402scan ownership proof: an EIP-191 personal_sign of this service's
-# origin URL by the payTo wallet. NOT YET SIGNED for lock-smith — the
-# owner signs the new origin (as he did for the other four services on
-# 2026-10-24) and the proof is added here; until then the list is empty
-# and x402scan verification is a remaining launch step, stated as such.
-OWNERSHIP_PROOFS: list[str] = []
+# bare origin URL ("https://lock-smith-production.up.railway.app") by
+# the payTo wallet, signed by the owner on 2026-10-26 (as he did for
+# the other services from 2026-10-24). Published in the manifest below
+# and in the OpenAPI x-discovery / x-agentcash-provenance root keys
+# (see main.py) so x402scan can verify control of the payment address.
+# This is publish-and-verify: the proof must stay published
+# permanently — removing it un-verifies the x402scan listing.
+# DO NOT REMOVE.
+OWNERSHIP_PROOFS: list[str] = [
+    "0xa83562902f31c86319b1b60c7ecdcd4662807dd85b91e2547798cccbe1ba5ccb0232a908182471d39f4790aec4614e99246753b0828b1ead407ff465708adc401c"
+]
 
 
 def _price_to_units(price_usdc: str) -> str:
