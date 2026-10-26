@@ -55,7 +55,7 @@ def main() -> int:
         return 1
     print(f"buyer (agent wallet): {account.address}")
 
-    with httpx.Client(timeout=180.0) as http:
+    with httpx.Client(timeout=600.0) as http:
         outcome = call_paid_endpoint(
             http,
             f"{base}/v1/audit",
