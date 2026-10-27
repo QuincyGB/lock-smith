@@ -49,6 +49,51 @@ from .probe import (
 AUDIT_VERSION = "1.0"
 MAX_PROBES = 20
 
+SCOPE_NOTE = (
+    "Automated security checks, not a penetration test. All probes are "
+    "unpaid and non-destructive; checks that could not run are reported "
+    "as not_tested, never as passes."
+)
+SCOPE_NOTE_COMPACT = "Automated security checks, not a penetration test."
+
+# Compact mode (mode="compact" on POST /v1/audit), added 2026-10-27 for
+# the same reason Token Verdict and ListSmith grew compact modes:
+# Settled's extractor silently drops published output samples over
+# ~1.5 KB serialized, and an honest full-mode audit report cannot fit
+# (the full-mode example is 2,056 B). Compact returns the SAME audit —
+# same checks, statuses, terms and summary — with headline summaries in
+# place of the passing checks' detail prose and the short scope note.
+# Findings and not_tested checks keep their full detail: where something
+# is wrong, the detail is the product.
+COMPACT_PASS_DETAILS = {
+    "paywall_present": "Unpaid request drew 402.",
+    "challenge_sanity": "Terms complete, consistent.",
+    "garbage_payment": "Junk rejected.",
+    "forged_payment": "Forged rejected.",
+    "exposure_surface": "Nothing sensitive exposed.",
+    "error_hygiene": "Clean errors only.",
+    "body_cap": "Oversized body refused.",
+    "discovery_consistency": "Discovery matches terms.",
+}
+
+
+def compactify(result: dict[str, Any]) -> dict[str, Any]:
+    """The compact form of a full audit result (see COMPACT_PASS_DETAILS).
+
+    Pure transformation of the full result — the published compact
+    example is derived from the published full example with this exact
+    function, and a test pins that they cannot drift apart.
+    """
+    import copy
+
+    out = copy.deepcopy(result)
+    for check in out.get("checks", []):
+        if check.get("status") == "pass" and check.get("id") in COMPACT_PASS_DETAILS:
+            check["detail"] = COMPACT_PASS_DETAILS[check["id"]]
+    out["scope_note"] = SCOPE_NOTE_COMPACT
+    out["mode"] = "compact"
+    return out
+
 _SEVERITY_ORDER = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 
 # EIP-712 domain for USDC's EIP-3009 TransferWithAuthorization on a given
@@ -583,6 +628,7 @@ async def run_audit(
     target_url: str,
     client: httpx.AsyncClient | None = None,
     timeout: float = 8.0,
+    mode: str = "full",
 ) -> dict[str, Any]:
     """Run the full battery against one x402 endpoint URL.
 
@@ -615,8 +661,9 @@ async def run_audit(
     checks.append(await _check_discovery(ctx))
 
     findings = [c for c in checks if c.status == "finding"]
-    return {
+    result = {
         "ok": True,
+        "mode": mode,
         "service": "lock-smith",
         "audit_version": AUDIT_VERSION,
         "target": target_url,
@@ -644,9 +691,8 @@ async def run_audit(
         },
         "checks": [c.to_dict() for c in checks],
         "probes_used": ctx.probes_used,
-        "scope_note": (
-            "Automated security checks, not a penetration test. All probes are "
-            "unpaid and non-destructive; checks that could not run are reported "
-            "as not_tested, never as passes."
-        ),
+        "scope_note": SCOPE_NOTE,
     }
+    if mode == "compact":
+        return compactify(result)
+    return result

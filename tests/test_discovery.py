@@ -64,8 +64,52 @@ def test_example_is_real_and_validates():
     ]
 
 
+def test_compact_example_under_settled_sample_limit():
+    """Settled's extractor silently drops published output samples over
+    ~1.5 KB serialized (measured 2026-10-25: RouteVerdict's 1,453 B
+    sample kept and graded as_advertised; Token Verdict's 1,721 B and
+    ListSmith's 4,972 B samples dropped -> nothing_to_compare). The
+    honest full-mode example is 2,072 B, so the listing publishes the
+    compact pair (mode="compact"); the fleet pin is <=1,450 B."""
+    import json
+
+    from app.discovery import AUDIT_COMPACT_OUTPUT_EXAMPLE
+
+    assert len(json.dumps(AUDIT_COMPACT_OUTPUT_EXAMPLE).encode()) <= 1450
+
+
+def test_compact_example_is_compactified_full_example():
+    # The published compact example is not hand-maintained prose: it is
+    # the engine's compactify() applied to the real full example, so
+    # the two can never drift apart; the audit DATA is identical.
+    from app.audit import compactify
+    from app.discovery import AUDIT_COMPACT_OUTPUT_EXAMPLE
+
+    assert AUDIT_COMPACT_OUTPUT_EXAMPLE == compactify(AUDIT_OUTPUT_EXAMPLE)
+    jsonschema.validate(AUDIT_COMPACT_OUTPUT_EXAMPLE, AUDIT_OUTPUT_SCHEMA)
+    for key in ("service", "target", "verdict", "summary", "terms_observed", "probes_used"):
+        assert AUDIT_COMPACT_OUTPUT_EXAMPLE[key] == AUDIT_OUTPUT_EXAMPLE[key]
+    assert AUDIT_COMPACT_OUTPUT_EXAMPLE["mode"] == "compact"
+    assert [c["status"] for c in AUDIT_COMPACT_OUTPUT_EXAMPLE["checks"]] == \
+        [c["status"] for c in AUDIT_OUTPUT_EXAMPLE["checks"]]
+
+
+def test_extension_publishes_compact_pair():
+    from app.discovery import (
+        AUDIT_COMPACT_INPUT_EXAMPLE,
+        AUDIT_COMPACT_OUTPUT_EXAMPLE,
+        audit_extension,
+    )
+
+    ext = audit_extension()
+    assert ext["info"]["input"]["body"] == AUDIT_COMPACT_INPUT_EXAMPLE
+    assert ext["info"]["output"]["example"] == AUDIT_COMPACT_OUTPUT_EXAMPLE
+    assert AUDIT_COMPACT_INPUT_EXAMPLE["mode"] == "compact"
+
+
 def test_input_schema_shape():
     assert AUDIT_INPUT_SCHEMA["required"] == ["endpoint_url"]
+    assert AUDIT_INPUT_SCHEMA["properties"]["mode"]["enum"] == ["full", "compact"]
 
 
 def test_skill_md_lists_exactly_the_eight_checks(settings):

@@ -11,6 +11,7 @@ stays under the 500-char CDP limit — all pinned by tests.
 
 from __future__ import annotations
 
+from .audit import compactify
 from .config import Settings
 
 # x402 v2 "exact"-scheme asset for USDC on Base mainnet (6 decimals) — the
@@ -48,6 +49,12 @@ AUDIT_INPUT_SCHEMA = {
             "type": "string",
             "description": "Full URL of the x402 endpoint (paid route) to audit, e.g. https://service.example.com/v1/endpoint",
         },
+        "mode": {
+            "type": "string",
+            "enum": ["full", "compact"],
+            "default": "full",
+            "description": "Response mode. 'full' (default) returns every check's full detail prose. 'compact' returns the same audit with headline summaries for passing checks (findings keep full detail) — for buyers who republish or forward the response; some indexers drop samples over ~1.5 KB.",
+        },
     },
 }
 
@@ -69,6 +76,7 @@ AUDIT_OUTPUT_SCHEMA = {
     "required": ["ok", "service", "audit_version", "target", "verdict", "summary", "terms_observed", "checks", "probes_used", "scope_note"],
     "properties": {
         "ok": {"type": "boolean"},
+        "mode": {"type": "string", "enum": ["full", "compact"]},
         "service": {"type": "string"},
         "audit_version": {"type": "string"},
         "target": {"type": "string"},
@@ -105,7 +113,21 @@ AUDIT_INPUT_EXAMPLE = {
 # A REAL audit, produced by this service's engine against the fleet's
 # own Token Verdict route on 2026-10-25 (SECURE, 8 of 8 checks passed).
 # Never hand-edit: regenerate by running the audit.
-AUDIT_OUTPUT_EXAMPLE = {'ok': True, 'service': 'lock-smith', 'audit_version': '1.0', 'target': 'https://token-verdict-production.up.railway.app/v1/verdict', 'verdict': 'SECURE', 'summary': {'passed': 8, 'findings': 0, 'not_tested': 0, 'worst_severity': None}, 'terms_observed': {'price': '$0.02', 'amount_units': '20000', 'network': 'eip155:8453', 'asset': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'pay_to': '0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F'}, 'checks': [{'id': 'paywall_present', 'name': 'Paywall present', 'status': 'pass', 'detail': 'Unpaid request drew HTTP 402 with a parseable x402 challenge.'}, {'id': 'challenge_sanity', 'name': 'Challenge sanity', 'status': 'pass', 'detail': 'Challenge terms are complete and consistent: exact on eip155:8453, amount 20000 units ($0.02), payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F.'}, {'id': 'garbage_payment', 'name': 'Garbage payment rejected', 'status': 'pass', 'detail': 'Base64-junk payment headers were rejected with a fresh 402 challenge.'}, {'id': 'forged_payment', 'name': 'Forged payment rejected', 'status': 'pass', 'detail': 'Invalid-signature EIP-3009 authorization was rejected (HTTP 402).'}, {'id': 'exposure_surface', 'name': 'Exposure surface', 'status': 'pass', 'detail': 'None of /.env, /.git/config, /debug, /metrics, /admin answered with sensitive content.'}, {'id': 'error_hygiene', 'name': 'Error hygiene', 'status': 'pass', 'detail': 'Malformed-JSON and wrong-content-type requests drew clean errors (or a paywall 402) with no stack traces, paths, SQL, or debug pages.'}, {'id': 'body_cap', 'name': 'Body-cap sanity', 'status': 'pass', 'detail': 'Oversized (~1.1 MiB) body was refused with HTTP 413.'}, {'id': 'discovery_consistency', 'name': 'Discovery consistency', 'status': 'pass', 'detail': 'Published discovery advertises the audited route with terms matching the live challenge.'}], 'probes_used': 14, 'scope_note': 'Automated security checks, not a penetration test. All probes are unpaid and non-destructive; checks that could not run are reported as not_tested, never as passes.'}
+AUDIT_OUTPUT_EXAMPLE = {'ok': True, 'mode': 'full', 'service': 'lock-smith', 'audit_version': '1.0', 'target': 'https://token-verdict-production.up.railway.app/v1/verdict', 'verdict': 'SECURE', 'summary': {'passed': 8, 'findings': 0, 'not_tested': 0, 'worst_severity': None}, 'terms_observed': {'price': '$0.02', 'amount_units': '20000', 'network': 'eip155:8453', 'asset': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'pay_to': '0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F'}, 'checks': [{'id': 'paywall_present', 'name': 'Paywall present', 'status': 'pass', 'detail': 'Unpaid request drew HTTP 402 with a parseable x402 challenge.'}, {'id': 'challenge_sanity', 'name': 'Challenge sanity', 'status': 'pass', 'detail': 'Challenge terms are complete and consistent: exact on eip155:8453, amount 20000 units ($0.02), payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F.'}, {'id': 'garbage_payment', 'name': 'Garbage payment rejected', 'status': 'pass', 'detail': 'Base64-junk payment headers were rejected with a fresh 402 challenge.'}, {'id': 'forged_payment', 'name': 'Forged payment rejected', 'status': 'pass', 'detail': 'Invalid-signature EIP-3009 authorization was rejected (HTTP 402).'}, {'id': 'exposure_surface', 'name': 'Exposure surface', 'status': 'pass', 'detail': 'None of /.env, /.git/config, /debug, /metrics, /admin answered with sensitive content.'}, {'id': 'error_hygiene', 'name': 'Error hygiene', 'status': 'pass', 'detail': 'Malformed-JSON and wrong-content-type requests drew clean errors (or a paywall 402) with no stack traces, paths, SQL, or debug pages.'}, {'id': 'body_cap', 'name': 'Body-cap sanity', 'status': 'pass', 'detail': 'Oversized (~1.1 MiB) body was refused with HTTP 413.'}, {'id': 'discovery_consistency', 'name': 'Discovery consistency', 'status': 'pass', 'detail': 'Published discovery advertises the audited route with terms matching the live challenge.'}], 'probes_used': 14, 'scope_note': 'Automated security checks, not a penetration test. All probes are unpaid and non-destructive; checks that could not run are reported as not_tested, never as passes.'}
+
+
+# The listing publishes the compact pair (ListSmith/Token Verdict
+# pattern): Settled's extractor silently drops published output samples
+# over ~1.5 KB serialized (measured 2026-10-25), and the honest
+# full-mode example above is 2,056 B. The compact example is DERIVED
+# from the real full example with the engine's own compactify() — same
+# audit, headline pass summaries — and a test pins the derivation and
+# the <=1,450 B fleet limit.
+AUDIT_COMPACT_INPUT_EXAMPLE = {
+    "endpoint_url": "https://token-verdict-production.up.railway.app/v1/verdict",
+    "mode": "compact",
+}
+AUDIT_COMPACT_OUTPUT_EXAMPLE = compactify(AUDIT_OUTPUT_EXAMPLE)
 
 
 def bazaar_extension(input_schema: dict, output_schema: dict,
@@ -161,7 +183,8 @@ def bazaar_extension(input_schema: dict, output_schema: dict,
 
 def audit_extension() -> dict:
     return bazaar_extension(AUDIT_INPUT_SCHEMA, AUDIT_OUTPUT_SCHEMA,
-                             AUDIT_INPUT_EXAMPLE, AUDIT_OUTPUT_EXAMPLE)
+                             AUDIT_COMPACT_INPUT_EXAMPLE,
+                             AUDIT_COMPACT_OUTPUT_EXAMPLE)
 
 
 def x402_manifest(settings: Settings, base_url: str) -> dict:
@@ -295,7 +318,7 @@ def llms_txt(settings: Settings, base_url: str) -> str:
     return f"""# LockSmith
 > Automated security checks for x402 endpoints — not a penetration test. Eight non-destructive, unpaid probes per audit; SECURE / FINDINGS / EXPOSED verdict with fix notes.
 
-- POST {base_url}/v1/audit ({settings.audit_price_usdc} USDC on Base, x402 v2): audit one endpoint URL {{"endpoint_url": "..."}}.
+- POST {base_url}/v1/audit ({settings.audit_price_usdc} USDC on Base, x402 v2): audit one endpoint URL {{"endpoint_url": "..."}}. Optional "mode": "compact" returns the same audit with headline pass summaries (findings keep full detail).
 - GET {base_url}/quote: free price quote.
 - GET {base_url}/.well-known/x402: service manifest.
 - GET {base_url}/skill.md: full agent documentation.

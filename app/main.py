@@ -181,6 +181,20 @@ async def _body_cap(request: Request, call_next):
 
 class AuditRequest(BaseModel):
     endpoint_url: str = Field(description="Full URL of the x402 endpoint (paid route) to audit")
+    mode: str = Field(
+        default="full",
+        pattern="^(full|compact)$",
+        description=(
+            "Response mode. 'full' (default) returns every check's full "
+            "detail prose. 'compact' returns the same audit — same "
+            "checks, statuses, terms and summary — with headline "
+            "summaries for passing checks and the short scope note, for "
+            "buyers who republish or forward the response (listing "
+            "samples over ~1.5 KB get dropped by some indexers). "
+            "Findings and not_tested checks keep full detail in both "
+            "modes."
+        ),
+    )
 
 
 def _public_base(request: Request) -> str:
@@ -347,7 +361,7 @@ async def audit(req: AuditRequest):
     """Paid endpoint — unreachable until the x402 middleware verifies payment."""
     endpoint_url = req.endpoint_url.strip()
     try:
-        return await run_audit(endpoint_url, timeout=settings.fetch_timeout_s)
+        return await run_audit(endpoint_url, timeout=settings.fetch_timeout_s, mode=req.mode)
     except ValueError as e:
         # Invalid input (bad URL / non-public target). 422 never settles.
         return JSONResponse({"error": str(e)}, status_code=422)
