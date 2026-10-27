@@ -36,6 +36,10 @@ class Settings:
     port: int
     # Coinbase CDP facilitator credentials (optional). Only used when
     # X402_FACILITATOR_URL points at CDP — see use_cdp below.
+    # Fleet-internal shared secret (optional). Gates the unpaid
+    # /v1/internal/* route that StallRow's /v1/orchestrate fans out
+    # to; unset = route disabled (404). Never in discovery.
+    fleet_internal_secret: str | None = None
     cdp_api_key_id: str | None = None
     cdp_api_key_secret: str | None = None
 
@@ -82,5 +86,6 @@ def load_settings() -> Settings:
         service_name=os.environ.get("X402_SERVICE_NAME", "lock-smith").strip(),
         fetch_timeout_s=float(os.environ.get("LOCKSMITH_FETCH_TIMEOUT_S", "8")),
         port=int(os.environ.get("PORT", "3000")),
+        fleet_internal_secret=os.environ.get("FLEET_INTERNAL_SECRET", "").strip() or None,
         **{k.lower(): v for k, v in cdp_keys.items() if v is not None},
     )
