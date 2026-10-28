@@ -172,6 +172,36 @@ def test_duplicate_nudge_is_not_stored_twice(client):
     assert main._nudge_store.nudge_count() == 1
 
 
+def test_escalation_knock_is_stored_as_its_own_entry(client):
+    """The wake-up ladder (spec §6): an escalation shares knock 1's
+    (sender, route, defect, first_seen) but carries
+    escalation="final" — it must store as a second entry, while a
+    re-send of the escalation itself still dedupes. New fields
+    (severity, impact, action) ride along verbatim in storage."""
+    knock1 = _nudge(severity="warning", impact="i1", action={"method": "POST"})
+    assert client.post("/v1/nudge", json=knock1).json()["stored"] is True
+    escalation = _nudge(
+        severity="warning",
+        impact="still broken",
+        action={"method": "POST"},
+        escalation="final",
+        first_knock_at="2026-10-27T22:40:00Z",
+    )
+    resp = client.post("/v1/nudge", json=escalation)
+    assert resp.status_code == 200
+    assert resp.json()["stored"] is True
+    assert resp.json()["duplicate"] is False
+    assert main._nudge_store.nudge_count() == 2
+    again = client.post("/v1/nudge", json=escalation)
+    assert again.json()["duplicate"] is True
+    assert main._nudge_store.nudge_count() == 2
+    stored = main._nudge_store.list_nudges(2)
+    by_escalation = {bool(n["message"].get("escalation")): n["message"] for n in stored}
+    assert by_escalation[True]["impact"] == "still broken"
+    assert by_escalation[False]["impact"] == "i1"
+    assert by_escalation[True]["action"] == {"method": "POST"}
+
+
 def test_unsigned_and_malformed_are_clean_400s(client):
     unsigned = _nudge()
     del unsigned["signature"]
