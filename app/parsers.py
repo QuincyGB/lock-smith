@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 # Assets whose decimals we know, keyed by (network, asset). USDC on Base
 # is the only asset we price-format; anything else is reported in raw
@@ -125,18 +126,33 @@ def parse_challenge(status: int, headers: dict, body: bytes) -> ChallengeParse:
 
 
 def format_price(amount_units: str | None, network: str | None, asset: str | None) -> str | None:
-    """'$0.05' for a known asset; None when decimals are unknown."""
+    """'$0.05' for a known asset; None when decimals are unknown.
+
+    Sub-cent amounts keep their exact precision ('$0.001', '$0.005');
+    see the Decimal rendering below.
+    """
     if amount_units is None or network is None or asset is None:
         return None
     decimals = KNOWN_ASSET_DECIMALS.get((network, asset.lower()))
     if decimals is None:
         return None
     try:
-        value = int(amount_units) / (10**decimals)
+        units = int(amount_units)
     except ValueError:
         return None
-    if 0 < value < 0.01:
-        # Sub-cent prices (fleet routes go down to $0.001) must not
-        # render as "$0.00" in an audit report.
-        return "$" + f"{value:.6f}".rstrip("0")
-    return f"${value:.2f}"
+    # Exact Decimal arithmetic: sub-cent prices (fleet routes go down
+    # to $0.001) keep their precision ('$0.001', '$0.005') and a nonzero
+    # price never renders as "$0.00". Amounts of a cent or more keep
+    # the familiar two-decimal rendering unless they carry sub-cent
+    # residue, which is also shown exactly.
+    value = Decimal(units) / (Decimal(10) ** decimals)
+    rendered = format(value, "f")
+    if "." in rendered:
+        head, _, frac = rendered.partition(".")
+        frac = frac.rstrip("0")
+        if len(frac) < 2:
+            frac = frac.ljust(2, "0")
+        rendered = f"{head}.{frac}"
+    else:
+        rendered = f"{rendered}.00"
+    return f"${rendered}"
