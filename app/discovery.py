@@ -257,6 +257,81 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
     }
 
 
+
+# --- agent card -------------------------------------------------------------
+# The A2A-style card served at /.well-known/agent-card.json. It is
+# DERIVED from the x402 manifest above — same resources, same prices,
+# same payTo — so the card can never drift from the discovery doc the
+# directories already read. Skills mirror the priced routes; the
+# services[] entries carry each route's endpoint + atomic amount in
+# the shape card verifiers (including the fleet's own
+# /v1/agent-card-verify on StallRow) read. No capability is claimed
+# that the service does not have: no streaming, no A2A task push
+# notifications.
+
+CARD_NAME = "LockSmith"
+CARD_PROVIDER = {"organization": "Verdict Row", "url": "https://github.com/QuincyGB"}
+
+
+def _skill_name(path: str) -> str:
+    return path.rstrip("/").rsplit("/", 1)[-1].replace("-", " ").title()
+
+
+def agent_card(settings: Settings, base_url: str) -> dict:
+    manifest = x402_manifest(settings, base_url)
+    skills: list[dict] = []
+    services: list[dict] = []
+    for r in manifest["resources"]:
+        if r.get("method") != "POST":
+            continue  # free reads (the quote) are not skills
+        resource = r["resource"]
+        path = resource[len(base_url):] if resource.startswith(base_url) else resource
+        base_accept = next(
+            (a for a in r.get("accepts") or [] if a.get("network") == settings.network),
+            None,
+        )
+        skills.append(
+            {
+                "id": path.strip("/").replace("/", "-"),
+                "name": _skill_name(path),
+                "description": r["description"],
+                "tags": r.get("tags") or [],
+                "inputModes": ["application/json"],
+                "outputModes": ["application/json"],
+            }
+        )
+        entry = {"name": path, "endpoint": resource}
+        if base_accept is not None:
+            entry["amount"] = str(base_accept["amount"])
+        services.append(entry)
+    return {
+        "protocolVersion": "0.3.0",
+        "name": CARD_NAME,
+        "description": manifest["description"],
+        "url": base_url,
+        "provider": CARD_PROVIDER,
+        "version": "1.0.0",
+        "documentationUrl": f"{base_url}/llms.txt",
+        "capabilities": {
+            "streaming": False,
+            "pushNotifications": False,
+            "stateTransitionHistory": False,
+        },
+        "defaultInputModes": ["application/json"],
+        "defaultOutputModes": ["application/json"],
+        "skills": skills,
+        "services": services,
+        "x402": {
+            "version": 2,
+            "scheme": "exact",
+            "discovery": f"{base_url}/.well-known/x402",
+            "payTo": settings.pay_to,
+            "network": settings.network,
+            "asset": USDC_ASSET,
+        },
+    }
+
+
 def skill_md(settings: Settings, base_url: str) -> str:
     return f"""# LockSmith — security audits for x402 endpoints
 
@@ -316,6 +391,7 @@ probes are sent per audit.
 
 - `GET {base_url}/quote` — price, asset, network, payTo.
 - `GET {base_url}/.well-known/x402` — this service's own manifest.
+- `GET {base_url}/.well-known/agent-card.json` — A2A agent card (skills mirror the priced routes).
 - `GET {base_url}/health` — liveness.
 """
 
@@ -327,5 +403,6 @@ def llms_txt(settings: Settings, base_url: str) -> str:
 - POST {base_url}/v1/audit ({settings.audit_price_usdc} USDC on Base, x402 v2): audit one endpoint URL {{"endpoint_url": "..."}}. Optional "mode": "compact" returns the same audit with headline pass summaries (findings keep full detail).
 - GET {base_url}/quote: free price quote.
 - GET {base_url}/.well-known/x402: service manifest.
+- GET {base_url}/.well-known/agent-card.json: A2A agent card (skills mirror the priced routes).
 - GET {base_url}/skill.md: full agent documentation.
 """

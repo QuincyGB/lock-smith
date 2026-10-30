@@ -1,7 +1,8 @@
 """LockSmith — x402 endpoint security audits for x402 services.
 
 Paid:   POST /v1/audit   (eight automated security checks, USDC via x402 v2 on Base)
-Free:   GET  /, /health, /quote, /.well-known/x402, /skill.md, /llms.txt
+Free:   GET  /, /health, /quote, /.well-known/x402, /skill.md, /llms.txt,
+             /.well-known/agent-card.json
         POST /v1/nudge (fleet-health nudge inbox — signed mail, not
         a product) and POST /v1/internal/nudges (owner read, gated
         by the fleet internal secret like /v1/internal/audit)
@@ -46,6 +47,7 @@ from .nudge import NudgeStore, resolve_nudge_path
 from .probe import USER_AGENT, fetch as _probe_fetch, shared_client
 from .discovery import (
     OWNERSHIP_PROOFS,
+    agent_card,
     audit_extension,
     llms_txt,
     skill_md,
@@ -341,6 +343,11 @@ async def quote():
 @app.get("/.well-known/x402")
 async def well_known(request: Request):
     return JSONResponse(x402_manifest(settings, _public_base(request)))
+
+
+@app.get("/.well-known/agent-card.json")
+async def agent_card_document(request: Request):
+    return JSONResponse(agent_card(settings, _public_base(request)))
 
 
 @app.get("/skill.md", response_class=PlainTextResponse)
