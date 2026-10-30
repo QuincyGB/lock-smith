@@ -270,7 +270,7 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
 # notifications.
 
 CARD_NAME = "LockSmith"
-CARD_PROVIDER = {"organization": "Verdict Row", "url": "https://github.com/QuincyGB"}
+CARD_PROVIDER = {"organization": "Verdict Row", "url": "https://github.com/QuincyGB", "email": "patrol@verdictrow.com"}
 
 
 def _skill_name(path: str) -> str:
@@ -310,6 +310,7 @@ def agent_card(settings: Settings, base_url: str) -> dict:
         "description": manifest["description"],
         "url": base_url,
         "provider": CARD_PROVIDER,
+        "contactEmail": "patrol@verdictrow.com",
         "version": "1.0.0",
         "documentationUrl": f"{base_url}/llms.txt",
         "capabilities": {
