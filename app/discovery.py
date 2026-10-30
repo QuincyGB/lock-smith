@@ -393,6 +393,7 @@ probes are sent per audit.
 - `GET {base_url}/quote` — price, asset, network, payTo.
 - `GET {base_url}/.well-known/x402` — this service's own manifest.
 - `GET {base_url}/.well-known/agent-card.json` — A2A agent card (skills mirror the priced routes).
+- `GET {base_url}/.well-known/stability-manifest.json` — signed pinned-route stability manifest (prices + schema fingerprints, pinned under an agent-wallet signature).
 - `GET {base_url}/health` — liveness.
 """
 
@@ -405,5 +406,6 @@ def llms_txt(settings: Settings, base_url: str) -> str:
 - GET {base_url}/quote: free price quote.
 - GET {base_url}/.well-known/x402: service manifest.
 - GET {base_url}/.well-known/agent-card.json: A2A agent card (skills mirror the priced routes).
+- GET {base_url}/.well-known/stability-manifest.json: signed pinned-route stability manifest (prices + schema fingerprints).
 - GET {base_url}/skill.md: full agent documentation.
 """

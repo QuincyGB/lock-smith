@@ -1,0 +1,36 @@
+{
+  "base_url": "https://lock-smith-production.up.railway.app",
+  "change_policy": {
+    "statement": "Prices and output schemas recorded here change only under a new signed manifest version, published before or with the change taking effect; changes are also announced in the fleet's public change record as they land. A served route whose price or schema fingerprint disagrees with the latest signed manifest is a defect — report it to patrol@verdictrow.com."
+  },
+  "issued_at": "2026-10-30T20:57:56Z",
+  "manifest": "verdict-row-stability/v1",
+  "pay_to": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+  "routes": [
+    {
+      "accepts": [
+        {
+          "amount": "500000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "maxTimeoutSeconds": 300,
+          "network": "eip155:8453",
+          "payTo": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+          "scheme": "exact"
+        }
+      ],
+      "method": "POST",
+      "resource": "https://lock-smith-production.up.railway.app/v1/audit",
+      "schema_fingerprint": "sha256:5bb5aba785505c3de584ab833d9c7771598ed0f1d13e72cc4d090f1d96d5d839"
+    },
+    {
+      "accepts": null,
+      "method": "GET",
+      "resource": "https://lock-smith-production.up.railway.app/quote",
+      "schema_fingerprint": "sha256:06334c74179fe04003e14ffd129c8518b8c3380bfea5e3d1308f4f4888c8f6e2"
+    }
+  ],
+  "signature": "0xdeb7f4523326eb42efd0c38c453a97eac0b9d47004ac55924dda29d1659ca75d6e6554a2f9d421c064c8737ead0694f638736de714b9f25ec77d79cdd939099e1b",
+  "signer": "0xa4f183a6799F0310FcCC545B07F2DcC960223de2",
+  "stall": "lock-smith",
+  "version": "2026-10-30.1"
+}
