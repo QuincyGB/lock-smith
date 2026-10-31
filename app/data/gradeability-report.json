@@ -1,0 +1,67 @@
+{
+  "base_url": "https://lock-smith-production.up.railway.app",
+  "checker_state": {
+    "last_run": "2026-10-31T08:48:50.567242+00:00",
+    "routes": {
+      "/v1/audit": {
+        "class": "OK",
+        "detail": "402, Base accept OK (500000 units to payTo)",
+        "status": "ok"
+      }
+    },
+    "service": {
+      "class": "OK",
+      "detail": "health/openapi/discovery OK",
+      "status": "ok"
+    },
+    "source": "fleet-checker state.json (check.py), quoted read-only",
+    "summary": "37/37 routes OK, 5/5 services OK"
+  },
+  "generated_at": "2026-10-31T12:11:18Z",
+  "generated_by": "Ren, Verdict Row Patrol — patrol@verdictrow.com",
+  "generator_run": {
+    "run_at": "2026-10-31T12:11:18Z",
+    "source": "fresh unpaid probes by gradeability_report.py build — the generator's own run, NOT the standing checker's"
+  },
+  "overall_pass": true,
+  "report": "verdict-row-gradeability/v1",
+  "routes": [
+    {
+      "asset_match": true,
+      "challenge_decodable": true,
+      "challenge_source": "header",
+      "detail": "402, challenge decodes, Base accept matches listed price/payTo/asset",
+      "http_status": 402,
+      "listed_amount_units": "500000",
+      "live_402_amount_units": "500000",
+      "network_match": true,
+      "pass": true,
+      "payto_match": true,
+      "price": "$0.50",
+      "price_match": true,
+      "resource": "https://lock-smith-production.up.railway.app/v1/audit",
+      "route": "/v1/audit",
+      "sdk_parse": {
+        "basis": "installed x402 SDK challenge model (PaymentRequired/PaymentRequiredV1), run locally in the generator over the unpaid 402 challenge — the same parse Sign Reader performs server-side, replicated so no paid call is made",
+        "failures": [],
+        "parses": true
+      }
+    }
+  ],
+  "signature": "0x0019f7a90610c108221e302a2603c83e14271d3bcfba75fa86e7a67e4350901b2fe3340720ce1cf13d56596e5969c2e41962e816a01a7285bc812617a076f0891c",
+  "signer": "0xa4f183a6799F0310FcCC545B07F2DcC960223de2",
+  "spec_checks": {
+    "base_asset_usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "base_network": "eip155:8453",
+    "discovery_payto": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+    "discovery_payto_is_fleet_wallet": true,
+    "discovery_served_and_parses": true,
+    "method": "listed side from the stall's live /.well-known/x402; live side from fresh unpaid POST {} probes (HTTP 402, payment-required challenge decoded locally); SDK parse run locally with the installed x402 SDK models — no paid call is ever made"
+  },
+  "stall": "lock-smith",
+  "summary": {
+    "routes_failed": 0,
+    "routes_passed": 1,
+    "routes_tested": 1
+  }
+}
