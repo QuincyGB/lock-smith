@@ -439,6 +439,7 @@ probes are sent per audit.
 - `GET {base_url}/.well-known/gradeability-report.json` — Gradeability Self-Test Report (latest self-test: listed price vs live 402 per priced route, challenge parse, spec checks, standing-checker result; signed, free)
 - MCP server (stdio, run it in your own MCP host): https://github.com/QuincyGB/lock-smith-mcp — manifest (server.json): https://github.com/QuincyGB/lock-smith-mcp/blob/main/server.json — tools wrap the priced route (/v1/audit)
 - Inspector Quickstart Pack (curl / Python / TypeScript): https://stall-row-production.up.railway.app/quickstart/curl · https://stall-row-production.up.railway.app/quickstart/python · https://stall-row-production.up.railway.app/quickstart/typescript — one-page integration path: pin Recheck + RouteVerdict, read the feed, register a watch, fund a pack
+- Verdict Row Tools Index: https://stall-row-production.up.railway.app/tools — every stall, every priced route + price, key surfaces (agent card, stability manifest, gradeability report, MCP, SDK status); machine-readable: https://stall-row-production.up.railway.app/tools.json
 - `GET {base_url}/health` — liveness.
 """
 
@@ -455,5 +456,6 @@ def llms_txt(settings: Settings, base_url: str) -> str:
 - GET {base_url}/.well-known/gradeability-report.json — Gradeability Self-Test Report (latest self-test: listed vs live 402 per priced route; signed, free)
 - MCP server (stdio, run it in your own MCP host): https://github.com/QuincyGB/lock-smith-mcp — manifest (server.json): https://github.com/QuincyGB/lock-smith-mcp/blob/main/server.json — tools wrap the priced route (/v1/audit)
 - Inspector Quickstart Pack (curl / Python / TypeScript): https://stall-row-production.up.railway.app/quickstart/curl · https://stall-row-production.up.railway.app/quickstart/python · https://stall-row-production.up.railway.app/quickstart/typescript — one-page integration path: pin Recheck + RouteVerdict, read the feed, register a watch, fund a pack
+- Verdict Row Tools Index: https://stall-row-production.up.railway.app/tools — every stall, every priced route + price, key surfaces (agent card, stability manifest, gradeability report, MCP, SDK status); machine-readable: https://stall-row-production.up.railway.app/tools.json
 - GET {base_url}/skill.md: full agent documentation.
 """
