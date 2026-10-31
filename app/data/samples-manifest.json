@@ -1,0 +1,17 @@
+{
+  "kind": "verdict-row-samples/v1",
+  "service": "lock-smith",
+  "generated_by": "Ren, Verdict Row Patrol \u2014 patrol@verdictrow.com",
+  "generator": "stall-row/scripts/gen_samples.py",
+  "note": "Free sample responses, one per priced route. source=recorded: a real recorded response from the fleet's recorded state. source=schema-example: shape example from the route's documented output example \u2014 not a recorded result. Every sample body carries sample=true + live=false in-band.",
+  "samples": [
+    {
+      "route": "/v1/audit",
+      "slug": "audit",
+      "source": "schema-example",
+      "target": "https://token-verdict-production.up.railway.app/v1/verdict",
+      "recorded_at": null,
+      "pulled_from": "app/discovery.py output example for this route (schema-validated)"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "audit_version": "1.0",
+  "checks": [
+    {
+      "detail": "Unpaid request drew HTTP 402 with a parseable x402 challenge.",
+      "id": "paywall_present",
+      "name": "Paywall present",
+      "status": "pass"
+    },
+    {
+      "detail": "Challenge terms are complete and consistent: exact on eip155:8453, amount 20000 units ($0.02), payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F.",
+      "id": "challenge_sanity",
+      "name": "Challenge sanity",
+      "status": "pass"
+    },
+    {
+      "detail": "Base64-junk payment headers were rejected with a fresh 402 challenge.",
+      "id": "garbage_payment",
+      "name": "Garbage payment rejected",
+      "status": "pass"
+    },
+    {
+      "detail": "Invalid-signature EIP-3009 authorization was rejected (HTTP 402).",
+      "id": "forged_payment",
+      "name": "Forged payment rejected",
+      "status": "pass"
+    },
+    {
+      "detail": "None of /.env, /.git/config, /debug, /metrics, /admin answered with sensitive content.",
+      "id": "exposure_surface",
+      "name": "Exposure surface",
+      "status": "pass"
+    },
+    {
+      "detail": "Malformed-JSON and wrong-content-type requests drew clean errors (or a paywall 402) with no stack traces, paths, SQL, or debug pages.",
+      "id": "error_hygiene",
+      "name": "Error hygiene",
+      "status": "pass"
+    },
+    {
+      "detail": "Oversized (~1.1 MiB) body was refused with HTTP 413.",
+      "id": "body_cap",
+      "name": "Body-cap sanity",
+      "status": "pass"
+    },
+    {
+      "detail": "Published discovery advertises the audited route with terms matching the live challenge.",
+      "id": "discovery_consistency",
+      "name": "Discovery consistency",
+      "status": "pass"
+    }
+  ],
+  "live": false,
+  "mode": "full",
+  "ok": true,
+  "probes_used": 14,
+  "recorded_at": null,
+  "route": "/v1/audit",
+  "sample": true,
+  "sample_note": "Shape example built from this route's documented output example (validated against its outputSchema) with real fleet subjects \u2014 not a recorded result. Buy the route for live data.",
+  "scope_note": "Automated security checks, not a penetration test. All probes are unpaid and non-destructive; checks that could not run are reported as not_tested, never as passes.",
+  "service": "lock-smith",
+  "source": "schema-example",
+  "summary": {
+    "findings": 0,
+    "not_tested": 0,
+    "passed": 8,
+    "worst_severity": null
+  },
+  "target": "https://token-verdict-production.up.railway.app/v1/verdict",
+  "terms_observed": {
+    "amount_units": "20000",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "network": "eip155:8453",
+    "pay_to": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+    "price": "$0.02"
+  },
+  "verdict": "SECURE"
+}
