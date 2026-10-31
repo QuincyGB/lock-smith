@@ -32,6 +32,7 @@ for _var in ("no_proxy", "NO_PROXY"):
         os.environ[_var] = ",".join(_kept)
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, Field
@@ -158,6 +159,45 @@ app.openapi = _openapi_with_ownership_proofs
 _payment_middleware = fastapi_payment_middleware(routes, resource_server)
 
 
+# --- graceful-failure handlers (Next-20 #18) --------------------------------
+# Caller faults answer in the fleet's {error, code} shape, naming the
+# offending field — FastAPI's default {"detail": [...]} body does not.
+# A missing field is named as required, a malformed body as JSON, any
+# other violation with its field and expectation. 422 never settles.
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError):
+    parts: list[str] = []
+    for err in exc.errors():
+        names = [str(p) for p in err.get("loc", ()) if isinstance(p, str) and p not in ("body", "query", "path")]
+        field = names[-1] if names else "request"
+        if err.get("type") == "missing":
+            parts.append(f"'{field}' is required")
+        elif err.get("type") == "json_invalid":
+            parts.append("request body is not valid JSON")
+        else:
+            parts.append(f"'{field}': {err.get('msg', 'invalid value')}")
+    return JSONResponse(
+        {"error": "; ".join(parts) or "invalid request", "code": "validation_error"},
+        status_code=422,
+    )
+
+
+# Backstop: no bare 500 ever leaves this service. An unexpected failure
+# is a fleet-shaped 502 — it never settles, and a Fleet-Pass debit
+# behind it has already been refunded by the middleware's exception
+# path above.
+
+
+@app.exception_handler(Exception)
+async def _unhandled_error(request: Request, exc: Exception):
+    log.exception("unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        {"error": "internal failure", "code": "internal_error"}, status_code=502
+    )
+
+
 _PASS_PATHS = {"/v1/audit"}
 
 
@@ -171,7 +211,14 @@ async def x402_middleware(request: Request, call_next):
     if isinstance(debit, JSONResponse):
         return debit
     if debit:
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # A handler that raises must not keep the debit: refund on
+            # the exception path too, then let the catch-all handler
+            # shape the failure (Next-20 #18).
+            await _fleet_pass.refund(debit)
+            raise
         if response.status_code >= 400:
             await _fleet_pass.refund(debit)
         return response
