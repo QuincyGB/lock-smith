@@ -1,0 +1,72 @@
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "stateTransitionHistory": false,
+    "streaming": false
+  },
+  "contactEmail": "patrol@verdictrow.com",
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
+  "description": "Automated security checks for x402 endpoints — not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.",
+  "discovery_bundle": "https://lock-smith-production.up.railway.app/.well-known/verdict-row.json",
+  "documentationUrl": "https://lock-smith-production.up.railway.app/llms.txt",
+  "name": "LockSmith",
+  "protocolVersion": "0.3.0",
+  "provider": {
+    "email": "patrol@verdictrow.com",
+    "organization": "Verdict Row",
+    "url": "https://github.com/QuincyGB"
+  },
+  "services": [
+    {
+      "amount": "500000",
+      "endpoint": "https://lock-smith-production.up.railway.app/v1/audit",
+      "name": "/v1/audit"
+    }
+  ],
+  "skills": [
+    {
+      "description": "Security-audit one x402 endpoint: eight automated, non-destructive, unpaid checks (paywall, challenge sanity, garbage/forged payment rejection, exposure surface, error hygiene, body cap, discovery consistency) with a SECURE / FINDINGS / EXPOSED verdict and a fix note per finding. Automated security checks, not a penetration test.",
+      "id": "v1-audit",
+      "inputModes": [
+        "application/json"
+      ],
+      "method": "POST",
+      "name": "Audit",
+      "outputModes": [
+        "application/json"
+      ],
+      "price": {
+        "amount_units": "500000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "display": "$0.50",
+        "network": "eip155:8453",
+        "payTo": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+        "protocol": "x402",
+        "scheme": "exact",
+        "usd": "0.5"
+      },
+      "tags": [
+        "x402",
+        "security",
+        "audit",
+        "agents"
+      ],
+      "url": "https://lock-smith-production.up.railway.app/v1/audit"
+    }
+  ],
+  "url": "https://lock-smith-production.up.railway.app",
+  "version": "1.0.0",
+  "x402": {
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "discovery": "https://lock-smith-production.up.railway.app/.well-known/x402",
+    "network": "eip155:8453",
+    "payTo": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+    "scheme": "exact",
+    "version": 2
+  }
+}
