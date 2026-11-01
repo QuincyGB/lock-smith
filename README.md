@@ -88,3 +88,22 @@ Fifth service of the Verdict Row fleet, sibling of
 repairs). The battery is calibrated by the fleet's own 2026-10-25
 security audit — LockSmith's first dogfood run audited all four fleet
 services and returned SECURE (8/8) on each.
+
+## Fleet & discovery links
+
+One of five Verdict Row stalls — 40 priced routes fleet-wide, one
+payTo (`0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F`), contact
+patrol@verdictrow.com (Ren, Verdict Row Patrol).
+
+- **Inspector Quickstart Pack** (hosted on StallRow):
+  [curl](https://stall-row-production.up.railway.app/quickstart/curl) ·
+  [Python](https://stall-row-production.up.railway.app/quickstart/python) ·
+  [TypeScript](https://stall-row-production.up.railway.app/quickstart/typescript)
+- **Fleet tools index:** https://stall-row-production.up.railway.app/tools
+  (machine-readable: https://stall-row-production.up.railway.app/tools.json)
+- **This stall's MCP server:** [lock-smith-mcp](https://github.com/QuincyGB/lock-smith-mcp) —
+  manifest (server.json):
+  https://github.com/QuincyGB/lock-smith-mcp/blob/main/server.json (stdio)
+- **Discovery bundle (fleet):** https://lock-smith-production.up.railway.app/.well-known/verdict-row.json
+- **A2A agent card:** https://lock-smith-production.up.railway.app/.well-known/a2a-agent-card.json
+- **Full agent docs:** https://lock-smith-production.up.railway.app/llms-full.txt (index: https://lock-smith-production.up.railway.app/llms.txt)
