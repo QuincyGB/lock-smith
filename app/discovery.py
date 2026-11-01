@@ -11,6 +11,8 @@ stays under the 500-char CDP limit — all pinned by tests.
 
 from __future__ import annotations
 
+import json
+
 from .audit import compactify
 from .config import Settings
 from .nudge import nudge_extension
@@ -244,8 +246,20 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
                 ),
                 "tags": ["x402", "security", "audit", "agents", "security-audit", "endpoint-verification", "preflight"],
                 "accepts": accepts(settings.audit_price_usdc),
-                "inputSchema": AUDIT_INPUT_SCHEMA,
-                "outputSchema": AUDIT_OUTPUT_SCHEMA,
+                # The same worked examples the 402 Bazaar extension
+                # carries (audit_extension(): the compact pair), embedded
+                # in the schemas under the JSON-Schema "example" keyword
+                # so manifest-only readers see them too. Copies, not the
+                # shared constants, so the schemas published elsewhere
+                # (OpenAPI) stay example-free.
+                "inputSchema": {
+                    **AUDIT_INPUT_SCHEMA,
+                    "example": AUDIT_COMPACT_INPUT_EXAMPLE,
+                },
+                "outputSchema": {
+                    **AUDIT_OUTPUT_SCHEMA,
+                    "example": AUDIT_COMPACT_OUTPUT_EXAMPLE,
+                },
             },
             {
                 "resource": f"{base_url}/quote",
@@ -358,6 +372,14 @@ def agent_card(settings: Settings, base_url: str) -> dict:
                 "name": _skill_name(path),
                 "description": r["description"],
                 "tags": r.get("tags") or [],
+                # A2A skill examples: JSON-serialized worked input(s),
+                # the StallRow card shape. The audit skill's example is
+                # the same input the Bazaar extension / manifest publish.
+                "examples": (
+                    [json.dumps(AUDIT_COMPACT_INPUT_EXAMPLE)]
+                    if path == "/v1/audit"
+                    else []
+                ),
                 "inputModes": ["application/json"],
                 "outputModes": ["application/json"],
             }

@@ -51,6 +51,21 @@ def test_card_skills_mirror_priced_routes():
         assert base_accept["payTo"] == settings.pay_to
 
 
+def test_card_audit_skill_carries_examples():
+    """A2A shape: the /v1/audit skill's examples are JSON-serialized
+    worked inputs — the same input example the Bazaar extension and
+    the x402 manifest publish (the compact pair)."""
+    import json
+
+    from app.discovery import AUDIT_COMPACT_INPUT_EXAMPLE
+
+    settings = load_settings()
+    card = agent_card(settings, BASE)
+    (skill,) = [s for s in card["skills"] if s["id"] == "v1-audit"]
+    assert skill["examples"] == [json.dumps(AUDIT_COMPACT_INPUT_EXAMPLE)]
+    assert json.loads(skill["examples"][0]) == AUDIT_COMPACT_INPUT_EXAMPLE
+
+
 def test_card_http_surface_is_free_json():
     with TestClient(main.app) as client:
         resp = client.get("/.well-known/agent-card.json")

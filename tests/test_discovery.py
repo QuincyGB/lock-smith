@@ -107,6 +107,31 @@ def test_extension_publishes_compact_pair():
     assert AUDIT_COMPACT_INPUT_EXAMPLE["mode"] == "compact"
 
 
+def test_manifest_resource_schemas_carry_examples(settings):
+    """The manifest resource embeds the worked examples under the
+    JSON-Schema "example" keyword — the same compact pair the 402
+    Bazaar extension publishes (audit_extension) — so manifest-only
+    readers (directories that never fetch the live 402) see a worked
+    input and output. The shared schema constants stay example-free:
+    only the manifest's copies carry the key."""
+    from app.discovery import (
+        AUDIT_COMPACT_INPUT_EXAMPLE,
+        AUDIT_COMPACT_OUTPUT_EXAMPLE,
+    )
+
+    manifest = x402_manifest(settings, BASE)
+    (resource,) = [r for r in manifest["resources"] if r["resource"].endswith("/v1/audit")]
+    assert resource["inputSchema"]["example"] == AUDIT_COMPACT_INPUT_EXAMPLE
+    assert resource["outputSchema"]["example"] == AUDIT_COMPACT_OUTPUT_EXAMPLE
+    # The rest of each schema is the published schema, unchanged.
+    assert {k: v for k, v in resource["inputSchema"].items() if k != "example"} \
+        == AUDIT_INPUT_SCHEMA
+    assert {k: v for k, v in resource["outputSchema"].items() if k != "example"} \
+        == AUDIT_OUTPUT_SCHEMA
+    assert "example" not in AUDIT_INPUT_SCHEMA
+    assert "example" not in AUDIT_OUTPUT_SCHEMA
+
+
 def test_input_schema_shape():
     assert AUDIT_INPUT_SCHEMA["required"] == ["endpoint_url"]
     assert AUDIT_INPUT_SCHEMA["properties"]["mode"]["enum"] == ["full", "compact"]
