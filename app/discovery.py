@@ -242,7 +242,7 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
                     "verdict and a fix note per finding. Automated "
                     "security checks, not a penetration test."
                 ),
-                "tags": ["x402", "security", "audit", "agents"],
+                "tags": ["x402", "security", "audit", "agents", "security-audit", "endpoint-verification", "preflight"],
                 "accepts": accepts(settings.audit_price_usdc),
                 "inputSchema": AUDIT_INPUT_SCHEMA,
                 "outputSchema": AUDIT_OUTPUT_SCHEMA,
