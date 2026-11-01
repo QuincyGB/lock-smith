@@ -1,0 +1,163 @@
+# lock-smith — llms-full.txt (Verdict Row x402 fleet)
+
+Generated: 2026-11-01T00:23:13Z by Ren, Verdict Row Patrol — patrol@verdictrow.com from the fleet's canonical route registry and this stall's served discovery + OpenAPI documents (llms_full.py, fleet-checker).
+Contact: patrol@verdictrow.com
+
+Automated security checks for x402 endpoints — not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.
+
+Payment terms (fleet-wide): x402, exact scheme, USDC. Fleet payTo: 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F. Base network: eip155:8453; Base USDC asset: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. No API key and no signup — payment is the authentication. An unpaid call to a priced route returns HTTP 402 with the payment challenge; fields a source cannot supply come back marked unknown, never invented, and an upstream failure returns 502 so the payment does not settle.
+
+Worked examples in this file are FIXTURE values (the same worked examples this stall's OpenAPI document and free /sample payloads publish): real shapes, not live data. Buy the route for live results.
+
+## Priced routes on this stall (1)
+
+### POST https://lock-smith-production.up.railway.app/v1/audit — $0.50
+
+Security-audit one x402 endpoint: eight automated, non-destructive, unpaid checks (paywall, challenge sanity, garbage/forged payment rejection, exposure surface, error hygiene, body cap, discovery consistency) with a SECURE / FINDINGS / EXPOSED verdict and a fix note per finding. Automated security checks, not a penetration test.
+
+Price: $0.50 (500000 USDC atomic units on Base).
+Accepts: scheme exact, network eip155:8453, amount 500000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
+Tags: x402, security, audit, agents
+Input shape: type object; fields: endpoint_url (string, required), mode (string)
+Output shape: type object; fields: audit_version (string, required), checks (array, required), mode (string), ok (boolean, required), probes_used (integer, required), scope_note (string, required), service (string, required), summary (object, required), target (string, required), terms_observed (object, required), verdict (string, required)
+
+Worked request example (fixture):
+```json
+{
+  "endpoint_url": "https://token-verdict-production.up.railway.app/v1/verdict"
+}
+```
+
+Worked response example (fixture):
+```json
+{
+  "audit_version": "1.0",
+  "checks": [
+    {
+      "detail": "Unpaid request drew HTTP 402 with a parseable x402 challenge.",
+      "id": "paywall_present",
+      "name": "Paywall present",
+      "status": "pass"
+    },
+    {
+      "detail": "Challenge terms are complete and consistent: exact on eip155:8453, amount 20000 units ($0.02), payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F.",
+      "id": "challenge_sanity",
+      "name": "Challenge sanity",
+      "status": "pass"
+    },
+    {
+      "detail": "Base64-junk payment headers were rejected with a fresh 402 challenge.",
+      "id": "garbage_payment",
+      "name": "Garbage payment rejected",
+      "status": "pass"
+    },
+    {
+      "detail": "Invalid-signature EIP-3009 authorization was rejected (HTTP 402).",
+      "id": "forged_payment",
+      "name": "Forged payment rejected",
+      "status": "pass"
+    },
+    {
+      "detail": "None of /.env, /.git/config, /debug, /metrics, /admin answered with sensitive content.",
+      "id": "exposure_surface",
+      "name": "Exposure surface",
+      "status": "pass"
+    },
+    {
+      "detail": "Malformed-JSON and wrong-content-type requests drew clean errors (or a paywall 402) with no stack traces, paths, SQL, or debug pages.",
+      "id": "error_hygiene",
+      "name": "Error hygiene",
+      "status": "pass"
+    },
+    {
+      "detail": "Oversized (~1.1 MiB) body was refused with HTTP 413.",
+      "id": "body_cap",
+      "name": "Body-cap sanity",
+      "status": "pass"
+    },
+    {
+      "detail": "Published discovery advertises the audited route with terms matching the live challenge.",
+      "id": "discovery_consistency",
+      "name": "Discovery consistency",
+      "status": "pass"
+    }
+  ],
+  "mode": "full",
+  "ok": true,
+  "probes_used": 14,
+  "scope_note": "Automated security checks, not a penetration test. All probes are unpaid and non-destructive; checks that could not run are reported as not_tested, never as passes.",
+  "service": "lock-smith",
+  "summary": {
+    "findings": 0,
+    "not_tested": 0,
+    "passed": 8,
+    "worst_severity": null
+  },
+  "target": "https://token-verdict-production.up.railway.app/v1/verdict",
+  "terms_observed": {
+    "amount_units": "20000",
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "network": "eip155:8453",
+    "pay_to": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+    "price": "$0.02"
+  },
+  "verdict": "SECURE"
+}
+```
+
+Free sample of this route's response shape: https://lock-smith-production.up.railway.app/sample/audit (source: schema-example; labelled in-band sample=true, live=false).
+
+## Pack mechanics (fleet prepaid packs, sold on StallRow)
+
+Packs and passes are prepaid balances that replace per-call payment on their routes. Each entry below is a priced route in the canonical registry; its stated price and mechanics are the registry's own record of that route.
+
+### POST https://stall-row-production.up.railway.app/v1/recheck/pack — $1
+
+Recheck watch pack — the default for monitoring loops: one $1.00 payment buys 250 change-checks for ONE endpoint ($0.004 per check instead of $0.005), good for 90 days. Returns an unguessable pack id — spend credits via POST /v1/recheck (body pack_id or X-Recheck-Pack header); read the balance free at POST /v1/recheck/pack-balance, and an exhausted pack returns 402 rather than charging per call. Use this when anything checks the same endpoint more than ~3 times a week.
+
+### POST https://stall-row-production.up.railway.app/v1/toolkit/pack — $1
+
+Toolkit Pack — the prepaid form of the inspector toolkit: one $1.00 payment buys 125 checks spendable on Sign Reader, Score Book, or Guard in any mix ($0.008/check instead of the $0.01 singles), good for 90 days. Spend credits via POST /v1/sign-read, /v1/score-book, or /v1/guard (body pack_id or X-Toolkit-Pack header); read the balance free at POST /v1/toolkit/pack-balance. An exhausted pack returns 402 rather than charging per call. Use this when your agent runs the toolkit regularly.
+
+### POST https://stall-row-production.up.railway.app/v1/fleet-check/pack — $5
+
+Fleet Check pack — the standing form of Fleet Check: one $5.00 payment buys 100 sweep credits for ONE fixed fleet definition (resources and/or origins), good for 90 days. Sweeps run on your interval or on demand via POST /v1/fleet-check/run — one credit per sweep, never per route — diff against the last sweep, and POST failures and recoveries to your webhook (heartbeats optional); the latest table is free at POST /v1/fleet-check/status. Use this when your stalls should be watched continuously.
+
+### POST https://stall-row-production.up.railway.app/v1/fleet-pass — $5
+
+Fleet Pass — one prepaid balance for the whole fleet: one $5.00 payment buys a $5.00 balance that spends on any paid route across Token Verdict, RouteVerdict, ListSmith, StallRow and LockSmith, each call debited at that route's listed price (90 days). Send the pass id as the X-Fleet-Pass header; read the balance free at POST /v1/fleet-pass/balance. Use this when a loop calls more than one fleet service and wants one budget, not a payment per call.
+
+### POST https://stall-row-production.up.railway.app/v1/fleet-pass-20 — $20
+
+Fleet Pass v2 — the $20 working pass for agent frameworks: one $20.00 payment buys a $20.00 prepaid balance that spends on any paid route across Token Verdict, RouteVerdict, ListSmith, StallRow and LockSmith, each call debited at that route's listed price — no holder discounts (90 days). Send the pass id as the X-Fleet-Pass header; read the balance free at POST /v1/fleet-pass/balance. Use this when a framework loop calls the fleet often enough that a $5 pass would run dry mid-run.
+
+Spending a pack: send the pack id in the request body (pack_id) or the pack's header (X-Recheck-Pack for Recheck packs, X-Toolkit-Pack for Toolkit packs); each call debits one credit instead of a per-call payment. Spending a Fleet Pass: send the pass id as the X-Fleet-Pass header on any priced route across all five stalls; each call debits that route's listed price from the pass balance. Pack and pass balances are readable free from the holder reads named in each stall's llms.txt / skill.md (the id alone is the credential).
+
+## Recheck feed v2 + hash chain (StallRow)
+
+Feed: GET https://stall-row-production.up.railway.app/v1/recheck/feed — recent Recheck results as JSONL, newest first. Feed v2: append ?v=2&since_seq=N for the cursor mode (ascending): each line is an envelope (seq, record_id, schema_version, prev_hash, record_hash, record). seq is a monotonically increasing integer; record_hash is the lowercase hex sha256 of prev_hash + "\n" + the record's canonical JSON (JSON with sorted keys and compact separators), and the first record chains from prev_hash "genesis" — a poller advancing a since_seq cursor can prove nothing was silently dropped. Filters ?origin=, ?pay_to= and ?route= select a subset of the SAME chain (hashes are never rewritten, so seq gaps under a filter are the excluded records, not drops). History is append-only and never pruned; backfill forwards from ?since_seq=0 or backwards with ?before_seq=N (the floor is the X-Recheck-Feed-Earliest-Seq header). The full fingerprint specification is published at https://stall-row-production.up.railway.app/v1/recheck/fingerprint-spec exactly as implemented.
+
+## Watch, webhooks and corrections policy
+
+Webhook Watch: register free at POST https://stall-row-production.up.railway.app/v1/watch/register with a funded Recheck pack or Fleet Pass and a webhook URL — the service rechecks on your interval and POSTs BASELINE/CHANGED events to your webhook; watch_focus="schema" is Contract Watch (SCHEMA_CHANGED pushes on output-schema fingerprint change only, funded at the listed Recheck price per run from the same pack/pass — the Recheck route's registry price above is that price). Self-serve Recheck change webhooks (feed-wide, one URL, or one origin) register at POST https://stall-row-production.up.railway.app/v1/recheck/webhooks, signed with your own secret. Corrections policy: the corrections log at GET https://stall-row-production.up.railway.app/v1/recheck/corrections is append-only — amendments to history records are served beside the originals; originals are never mutated, and corrections live outside the feed hash chain.
+
+## Discovery bundle, cards and fleet links
+
+- This stall's discovery doc: https://lock-smith-production.up.railway.app/.well-known/x402
+- This stall's OpenAPI document: https://lock-smith-production.up.railway.app/openapi.json
+- Compact index: https://lock-smith-production.up.railway.app/llms.txt · skill doc: https://lock-smith-production.up.railway.app/skill.md · this file: https://lock-smith-production.up.railway.app/llms-full.txt
+- Free samples index: https://lock-smith-production.up.railway.app/samples
+- Agent card: https://lock-smith-production.up.railway.app/.well-known/agent-card.json · A2A agent card: https://lock-smith-production.up.railway.app/.well-known/a2a-agent-card.json
+- Fleet Discovery Bundle (signed index of all five stalls): https://lock-smith-production.up.railway.app/.well-known/verdict-row.json
+- Stability manifest: https://lock-smith-production.up.railway.app/.well-known/stability-manifest.json · gradeability report: https://lock-smith-production.up.railway.app/.well-known/gradeability-report.json
+- Fleet status: https://stall-row-production.up.railway.app/status (JSON: https://stall-row-production.up.railway.app/status.json) · Tools index: https://stall-row-production.up.railway.app/tools (JSON: https://stall-row-production.up.railway.app/tools.json)
+- Fleet changelog: https://stall-row-production.up.railway.app/changelog.atom (JSON: https://stall-row-production.up.railway.app/changelog.json)
+
+## MCP + SDK pointers
+
+- MCP server for this stall: LockSmith MCP server (io.github.QuincyGB/lock-smith-mcp, transport stdio) — repository: https://github.com/QuincyGB/lock-smith-mcp · manifest (server.json): https://github.com/QuincyGB/lock-smith-mcp/blob/main/server.json. Stdio: run it in your own MCP host; its tools wrap this stall's priced routes.
+- Inspector Quickstart Pack (Inspector Quickstart Pack): curl https://stall-row-production.up.railway.app/quickstart/curl · Python https://stall-row-production.up.railway.app/quickstart/python · TypeScript https://stall-row-production.up.railway.app/quickstart/typescript
+- Python SDK: package "verdict-row" on PyPI — https://pypi.org/project/verdict-row/ (status also tracked on the Tools index: https://stall-row-production.up.railway.app/tools).
+- Paying a route: use any x402 v2 client (official Python or TypeScript x402 SDKs) — read the 402 challenge, pay the exact accept, retry with the payment header. The worked examples above are the exact request/response shapes.
+
+— Ren, Verdict Row Patrol — patrol@verdictrow.com · contact patrol@verdictrow.com
