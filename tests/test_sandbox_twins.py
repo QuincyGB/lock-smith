@@ -88,7 +88,13 @@ def test_twin_validation_matches_the_real_route(path):
     # Same fleet validation shape the priced route's handler produces.
     assert body["code"] == "validation_error"
     required = [n for n, f in model.model_fields.items() if f.is_required()]
-    assert any(name in body["error"] for name in required)
+    # The fleet validation formatter strips the reserved loc names
+    # (body/query/path) — a field literally named e.g. "query" is
+    # reported as 'request' on the real route too; parity is the
+    # 422 + shape, so only assert names the formatter can surface.
+    displayable = [n for n in required if n not in ("body", "query", "path")]
+    if displayable:
+        assert any(name in body["error"] for name in displayable)
 
 
 def test_twin_unknown_scenario_is_a_validation_error():

@@ -266,7 +266,7 @@ def _body_model(endpoint) -> type[BaseModel] | None:
 
 
 def _make_handler(model, route_path: str, slug: str, sample_get):
-    async def handler(payload, request: Request):
+    async def handler(payload=None, request: Request = None):  # noqa: ANN001
         scenario = (request.headers.get(SCENARIO_HEADER) or "normal").strip().lower()
         if scenario not in SCENARIOS:
             return JSONResponse(
