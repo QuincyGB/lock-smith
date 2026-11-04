@@ -34,7 +34,7 @@ for _var in ("no_proxy", "NO_PROXY"):
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from x402.http import FacilitatorConfig, HTTPFacilitatorClient, PaymentOption, RouteConfig
 from x402.http.middleware import fastapi_payment_middleware
@@ -55,6 +55,7 @@ from .discovery import (
     x402_manifest,
 )
 from . import samples as samples_svc
+from . import loop_offer as loop_offer_svc
 from .openapi_examples import add_worked_examples
 
 log = logging.getLogger("lock-smith")
@@ -204,6 +205,114 @@ async def _unhandled_error(request: Request, exc: Exception):
 _PASS_PATHS = {"/v1/audit"}
 
 
+def _price_units(price: str) -> int:
+    """USDC smallest units for a settings price string ("$0.50" ->
+    500000) — derived from the same string the x402 route charges,
+    never restated by hand."""
+    return int(round(float(price.strip().lstrip("$")) * 1_000_000))
+
+
+# This stall's priced routes and their enforced amounts, derived
+# from settings (the values the RouteConfigs above charge).
+PRICE_UNITS = {"/v1/audit": _price_units(settings.audit_price_usdc)}
+
+
+# --- loop block delivery layer (Next-20 #1) --------------------------------
+# The verdict_row_loop block (app/loop_offer.py) attaches HERE —
+# once, at the delivery layer every funding path passes through
+# (this middleware owns the per-call payment dispatch and the
+# Fleet Pass debit) — so EVERY successful paid delivery on every
+# priced route carries it, per-call and Fleet-Pass funded alike.
+# The fleet-internal unpaid path calls the handler directly,
+# bypassing this middleware, and never carries it.
+#
+# Guardrails: only POSTs to PRICE_UNITS routes with a 2xx JSON
+# response are eligible; error responses (>= 400, plus 2xx bodies
+# carrying a top-level "error") and unpaid 402 challenges NEVER
+# carry the block. Bodies are never rewritten when they are large
+# or streaming: anything over the cap below streams through
+# byte-identical. (Next-20 #5 per-wallet memory is scoped to
+# StallRow / RouteVerdict / ListSmith — this stall's block is the
+# static one.)
+_LOOP_MAX_JSON_BYTES = 1_000_000
+
+
+def _rebuild_response(body: bytes, response, media_type: str | None):
+    """A response carrying `body` with the original status and
+    headers (minus the framing headers the new body recomputes)."""
+    rebuilt = Response(
+        content=body,
+        status_code=response.status_code,
+        media_type=media_type,
+        background=response.background,
+    )
+    for key, value in response.headers.items():
+        if key.lower() not in ("content-type", "content-length"):
+            rebuilt.headers[key] = value
+    return rebuilt
+
+
+async def _attach_loop_offer(request: Request, response):
+    """Attach the verdict_row_loop block to a successful paid
+    delivery response."""
+    if (
+        request.method != "POST"
+        or request.url.path not in PRICE_UNITS
+        or not (200 <= response.status_code < 300)
+    ):
+        return response
+    content_type = response.headers.get("content-type") or ""
+    if "application/json" not in content_type:
+        return response
+    content_length = response.headers.get("content-length")
+    if (
+        content_length is not None
+        and content_length.isdigit()
+        and int(content_length) > _LOOP_MAX_JSON_BYTES
+    ):
+        # Large/streaming delivery: never buffered, never rewritten.
+        return response
+    chunks: list[bytes] = []
+    total = 0
+    iterator = response.body_iterator.__aiter__()
+    async for chunk in iterator:
+        if isinstance(chunk, str):
+            chunk = chunk.encode()
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > _LOOP_MAX_JSON_BYTES:
+            # Overflow mid-stream: replay what was read and keep
+            # streaming the rest, byte-identical.
+            async def _replay():
+                for part in chunks:
+                    yield part
+                async for part in iterator:
+                    yield part
+
+            replayed = StreamingResponse(
+                _replay(),
+                status_code=response.status_code,
+                media_type=content_type,
+                background=response.background,
+            )
+            for key, value in response.headers.items():
+                if key.lower() != "content-type":
+                    replayed.headers[key] = value
+            return replayed
+    body = b"".join(chunks)
+    try:
+        data = json.loads(body)
+    except Exception:  # noqa: BLE001 — not JSON after all: pass through
+        return _rebuild_response(body, response, content_type)
+    if not isinstance(data, dict) or "error" in data:
+        # Not a delivery dict, or a 2xx error report: no block.
+        return _rebuild_response(body, response, content_type)
+    loop_offer_svc.attach_loop_offer(data)
+    return _rebuild_response(
+        json.dumps(data).encode(), response, "application/json"
+    )
+
+
 @app.middleware("http")
 async def x402_middleware(request: Request, call_next):
     # A call presenting a Fleet Pass id is paid from the pass ledger
@@ -224,8 +333,10 @@ async def x402_middleware(request: Request, call_next):
             raise
         if response.status_code >= 400:
             await _fleet_pass.refund(debit)
-        return response
-    return await _payment_middleware(request, call_next)
+            return response
+        return await _attach_loop_offer(request, response)
+    response = await _payment_middleware(request, call_next)
+    return await _attach_loop_offer(request, response)
 
 
 # Request-body cap (fleet security standard, audit 2026-10-25): every
