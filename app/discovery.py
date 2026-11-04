@@ -492,6 +492,7 @@ probes are sent per audit.
 - Verdict Row Tools Index: https://stall-row-production.up.railway.app/tools — every stall, every priced route + price, key surfaces (agent card, stability manifest, gradeability report, MCP, SDK status); machine-readable: https://stall-row-production.up.railway.app/tools.json
 - Verdict Row Fleet Status: https://stall-row-production.up.railway.app/status — last-check status for every priced route in the fleet, rendered from the standing checker's own state (snapshot, timestamps on the page; JSON twin: https://stall-row-production.up.railway.app/status.json)
 - Free samples: `GET {base_url}/samples` — one sample response per priced route on this stall (recorded responses and schema-examples, labelled in-band: sample=true, live=false); `GET {base_url}/sample/<route-slug>` for a single route
+- Sandbox twins (free): `GET {base_url}/sandbox` lists a free sandbox twin of every priced route on this stall — POST to {base_url}/sandbox plus the priced route's path (same request schema and validation, no payment leg, deterministic fixture delivery marked sandbox=true, never a real delivery); edge-case scenarios normal / rotated_payto / drifted_schema / flagged_wallet via the X-Sandbox-Scenario header
 - Verdict Row Public Changelog: https://stall-row-production.up.railway.app/changelog.atom — subscribable Atom feed of fleet route / price / stability-manifest changes (JSON twin: https://stall-row-production.up.railway.app/changelog.json)
 - `GET {base_url}/health` — liveness.
 """
@@ -515,6 +516,7 @@ def llms_txt(settings: Settings, base_url: str) -> str:
 - Verdict Row Tools Index: https://stall-row-production.up.railway.app/tools — every stall, every priced route + price, key surfaces (agent card, stability manifest, gradeability report, MCP, SDK status); machine-readable: https://stall-row-production.up.railway.app/tools.json
 - Verdict Row Fleet Status: https://stall-row-production.up.railway.app/status — last-check status for every priced route in the fleet, rendered from the standing checker's own state (snapshot, timestamps on the page; JSON twin: https://stall-row-production.up.railway.app/status.json)
 - Free samples: `GET {base_url}/samples` — one sample response per priced route on this stall (recorded responses and schema-examples, labelled in-band: sample=true, live=false); `GET {base_url}/sample/<route-slug>` for a single route
+- Sandbox twins (free): `GET {base_url}/sandbox` lists a free sandbox twin of every priced route on this stall — POST to {base_url}/sandbox plus the priced route's path (same request schema and validation, no payment leg, deterministic fixture delivery marked sandbox=true, never a real delivery); edge-case scenarios normal / rotated_payto / drifted_schema / flagged_wallet via the X-Sandbox-Scenario header
 - Verdict Row Public Changelog: https://stall-row-production.up.railway.app/changelog.atom — subscribable Atom feed of fleet route / price / stability-manifest changes (JSON twin: https://stall-row-production.up.railway.app/changelog.json)
 - GET {base_url}/skill.md: full agent documentation.
 """
