@@ -54,7 +54,10 @@
         "x402",
         "security",
         "audit",
-        "agents"
+        "agents",
+        "security-audit",
+        "endpoint-verification",
+        "preflight"
       ],
       "url": "https://lock-smith-production.up.railway.app/v1/audit"
     }
