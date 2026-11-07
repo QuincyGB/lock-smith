@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 import app.main as main
+from app import delivery_ledger as delivery_ledger_svc
 from app.fleet_pass import LEDGER_URL
 
 URL = "https://93.184.216.34/v1/thing"
@@ -37,6 +38,16 @@ def _settled_client(monkeypatch):
     """TestClient whose payment middleware is a passthrough — a
     settled per-call delivery, in-process."""
     monkeypatch.setattr(main, "run_audit", _fake_audit)
+
+    # Fleet delivery-ledger recording (2026-11-07) is stubbed like
+    # the other delivery side effects in this harness; its own
+    # behavior is pinned by tests/test_delivery_ledger_recording.py.
+    async def _fake_record_delivery(payload):
+        return {"recorded": True}
+
+    monkeypatch.setattr(
+        delivery_ledger_svc, "record_delivery", _fake_record_delivery
+    )
 
     async def passthrough(request, call_next):
         return await call_next(request)
