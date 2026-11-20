@@ -22,7 +22,7 @@ def test_block_terms_match_stallrow_enforcement():
     assert fpass["url"] == f"{LEDGER_URL}/v1/fleet-pass"
     assert fpass["price_usd"] == 5.0
     assert fpass["terms"]["ttl_days"] == 90
-    assert "$0.50" in fpass["what_it_is"]  # this stall's audit price
+    assert "$0.10" in fpass["what_it_is"]  # this stall's audit price
 
     fpass20 = offers["fleet_pass_20"]
     assert fpass20["url"] == f"{LEDGER_URL}/v1/fleet-pass-20"
@@ -30,10 +30,10 @@ def test_block_terms_match_stallrow_enforcement():
 
     pack = offers["recheck_pack"]
     assert pack["url"] == f"{LEDGER_URL}/v1/recheck/pack"
-    assert pack["price_usd"] == 1.0
+    assert pack["price_usd"] == 0.10
     assert pack["terms"]["credits"] == 250
     assert pack["terms"]["ttl_days"] == 90
-    assert pack["terms"]["per_check_usd"] == 1.0 / 250
+    assert pack["terms"]["per_check_usd"] == 0.10 / 250
     assert pack["terms"]["per_call_price_usd"] == 0.005
 
     hook = offers["recheck_change_webhook"]

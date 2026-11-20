@@ -9,7 +9,7 @@ verdict — `SECURE` / `FINDINGS` / `EXPOSED` — with per-check results
 (`pass` / `finding` + severity / `not_tested` with a reason) and a
 concrete fix note for every finding.
 
-- **Route:** `POST /v1/audit` — **$0.50 flat** (USDC on Base, x402 v2 exact scheme)
+- **Route:** `POST /v1/audit` — **$0.10 flat** (USDC on Base, x402 v2 exact scheme)
 - **Input:** `{"endpoint_url": "https://your-service.example.com/v1/route"}`
 - **Pay to:** `0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F`
 - **Live:** https://lock-smith-production.up.railway.app
@@ -75,7 +75,7 @@ python -m pytest              # test suite (32 tests, fully offline)
 ```
 
 Configuration is by environment, mirroring the rest of the Verdict Row
-fleet: `X402_PAY_TO`, `X402_AUDIT_PRICE_USDC` (default `$0.50`),
+fleet: `X402_PAY_TO`, `X402_AUDIT_PRICE_USDC` (default `$0.10`),
 `X402_NETWORK` (default `eip155:8453`), `X402_FACILITATOR_URL` (CDP for
 Bazaar cataloging, with `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`; PayAI
 and keyless facilitators supported the same way), `X402_SERVICE_NAME`,

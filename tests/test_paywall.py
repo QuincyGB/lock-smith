@@ -1,5 +1,5 @@
 """The paywall contract: unpaid calls to /v1/audit get a 402 whose
-accepts carry LockSmith's exact terms ($0.50, USDC on Base, owner
+accepts carry LockSmith's exact terms ($0.10, USDC on Base, owner
 payTo) and the full Bazaar discovery extension; free routes stay open;
 oversized bodies are refused with 413 before anything else runs.
 
@@ -41,7 +41,7 @@ def test_unpaid_audit_is_paywalled_at_50_cents(client):
     assert a["scheme"] == "exact"
     assert a["network"] == "eip155:8453"
     assert a["asset"] == USDC
-    assert a["amount"] == "500000"  # $0.50 in USDC smallest units
+    assert a["amount"] == "100000"  # $0.10 in USDC smallest units
     assert a["payTo"] == main.settings.pay_to == OWNER
 
 
@@ -61,7 +61,7 @@ def test_free_routes_stay_open(client):
     quote = client.get("/quote")
     assert quote.status_code == 200
     body = quote.json()
-    assert body["endpoints"]["/v1/audit"]["price"] == "$0.50"
+    assert body["endpoints"]["/v1/audit"]["price"] == "$0.10"
     assert body["payTo"] == OWNER
     assert client.get("/").status_code == 200
     assert client.get("/.well-known/x402").status_code == 200

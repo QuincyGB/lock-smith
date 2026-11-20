@@ -8,13 +8,13 @@ therefore carries the fleet's repeat products. The products live
 on StallRow (the pass/recheck ledger), so the terms below MIRROR
 the constants that enforce them there — stall-row
 app/services/recheck.py (PACK_CREDITS 250, PACK_PRICE_UNITS
-1_000_000, PACK_TTL_DAYS 90) and app/services/fleetpass.py
+100_000, PACK_TTL_DAYS 90) and app/services/fleetpass.py
 (PASS_PRICE_UNITS 5_000_000, PASS_V2_PRICE_UNITS 20_000_000,
 PASS_TTL_DAYS 90) and stall-row config PRICE_UNITS for /v1/recheck
 (5_000) — the same mirror discipline as the sibling stalls'
 app/loop_offer.py (RouteVerdict, ListSmith) and this stall's
 app/fleet_pass.py price discipline. This stall's own route price
-mirrors app/config.py's default ($0.50). The tests pin every
+mirrors app/config.py's default ($0.10). The tests pin every
 figure.
 
 Additive only: the HTTP layer adds one top-level
@@ -35,7 +35,7 @@ LOOP_KEY = "verdict_row_loop"
 
 # StallRow-enforced terms, mirrored (see module docstring).
 RECHECK_PACK_CREDITS = 250
-RECHECK_PACK_PRICE_USD = 1.00
+RECHECK_PACK_PRICE_USD = 0.10
 RECHECK_PACK_TTL_DAYS = 90
 RECHECK_SINGLE_PRICE_USD = 0.005
 FLEET_PASS_PRICE_USD = 5.00
@@ -43,7 +43,7 @@ FLEET_PASS_20_PRICE_USD = 20.00
 FLEET_PASS_TTL_DAYS = 90
 
 # This stall's own route price, mirroring app/config.py's default.
-AUDIT_PRICE_USD = 0.50
+AUDIT_PRICE_USD = 0.10
 
 
 def loop_offer() -> dict:
@@ -54,8 +54,8 @@ def loop_offer() -> dict:
         "about": (
             "Paying per call to audit endpoints on a loop? "
             "Fund a Fleet Pass once and each audit debits its "
-            "listed $0.50 from the balance — or watch an endpoint "
-            "with Recheck at $0.004 per change-check and get a "
+             "listed $0.10 from the balance — or watch an endpoint "
+            "with Recheck at $0.0004 per change-check and get a "
             "webhook when it changes."
         ),
         "discovery": "/.well-known/verdict-row.json",
@@ -70,7 +70,7 @@ def loop_offer() -> dict:
                     "A prepaid USDC balance held on StallRow that "
                     "spends across all five Verdict Row stalls at "
                     "their listed per-route prices — including this "
-                    "service's /v1/audit at $0.50. Present the pass "
+                     "service's /v1/audit at $0.10. Present the pass "
                     "id in the X-Fleet-Pass header and calls debit "
                     "the balance instead of settling per call."
                 ),

@@ -28,7 +28,7 @@ PAYAI_FACILITATOR_URL = "https://facilitator.payai.network"
 @dataclass(frozen=True)
 class Settings:
     pay_to: str
-    audit_price_usdc: str  # e.g. "$0.50" — string format the x402 SDK expects
+    audit_price_usdc: str  # e.g. "$0.10" — string format the x402 SDK expects
     network: str
     facilitator_url: str
     service_name: str
@@ -80,7 +80,7 @@ def load_settings() -> Settings:
 
     return Settings(
         pay_to=pay_to,
-        audit_price_usdc=os.environ.get("X402_AUDIT_PRICE_USDC", "$0.50").strip(),
+        audit_price_usdc=os.environ.get("X402_AUDIT_PRICE_USDC", "$0.10").strip(),
         network=network,
         facilitator_url=facilitator_url,
         service_name=os.environ.get("X402_SERVICE_NAME", "lock-smith").strip(),

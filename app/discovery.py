@@ -38,7 +38,7 @@ OWNERSHIP_PROOFS: list[str] = [
 
 
 def _price_to_units(price_usdc: str) -> str:
-    """'$0.50' -> '500000' (USDC smallest units, 6 decimals)."""
+    """'$0.10' -> '100000' (USDC smallest units, 6 decimals)."""
     return str(int(round(float(price_usdc.replace("$", "").strip()) * 1_000_000)))
 
 

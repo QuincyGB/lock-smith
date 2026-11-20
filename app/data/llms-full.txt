@@ -11,12 +11,12 @@ Worked examples in this file are FIXTURE values (the same worked examples this s
 
 ## Priced routes on this stall (1)
 
-### POST https://lock-smith-production.up.railway.app/v1/audit — $0.50
+### POST https://lock-smith-production.up.railway.app/v1/audit — $0.10
 
 Security-audit one x402 endpoint: eight automated, non-destructive, unpaid checks (paywall, challenge sanity, garbage/forged payment rejection, exposure surface, error hygiene, body cap, discovery consistency) with a SECURE / FINDINGS / EXPOSED verdict and a fix note per finding. Automated security checks, not a penetration test.
 
-Price: $0.50 (500000 USDC atomic units on Base).
-Accepts: scheme exact, network eip155:8453, amount 500000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
+Price: $0.1 (100000 USDC atomic units on Base).
+Accepts: scheme exact, network eip155:8453, amount 100000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
 Tags: x402, security, audit, agents, security-audit, endpoint-verification, preflight
 Input shape: type object; fields: endpoint_url (string, required), mode (string)
 Output shape: type object; fields: audit_version (string, required), checks (array, required), mode (string), ok (boolean, required), probes_used (integer, required), scope_note (string, required), service (string, required), summary (object, required), target (string, required), terms_observed (object, required), verdict (string, required)
@@ -111,15 +111,15 @@ Free sample of this route's response shape: https://lock-smith-production.up.rai
 
 Packs and passes are prepaid balances that replace per-call payment on their routes. Each entry below is a priced route in the canonical registry; its stated price and mechanics are the registry's own record of that route.
 
-### POST https://stall-row-production.up.railway.app/v1/recheck/pack — $1
+### POST https://stall-row-production.up.railway.app/v1/recheck/pack — $0.1
 
 Recheck watch pack — the default for monitoring loops: one $1.00 payment buys 250 change-checks for ONE endpoint ($0.004 per check instead of $0.005), good for 90 days. Returns an unguessable pack id — spend credits via POST /v1/recheck (body pack_id or X-Recheck-Pack header); read the balance free at POST /v1/recheck/pack-balance, and an exhausted pack returns 402 rather than charging per call. Use this when anything checks the same endpoint more than ~3 times a week.
 
-### POST https://stall-row-production.up.railway.app/v1/toolkit/pack — $1
+### POST https://stall-row-production.up.railway.app/v1/toolkit/pack — $0.1
 
 Toolkit Pack — one $1.00 payment buys 125 prepaid calls ($0.008 each instead of the $0.01 singles) spendable on Sign Reader, Score Book, Guard, Tube Search, Page to Markdown, or Video Details in any mix, good for 90 days. Spend via pack_id (body or X-Toolkit-Pack header) on those routes; read the balance free at POST /v1/toolkit/pack-balance. An exhausted pack returns 402 rather than charging per call. Use this when your agent runs these tools regularly.
 
-### POST https://stall-row-production.up.railway.app/v1/fleet-check/pack — $5
+### POST https://stall-row-production.up.railway.app/v1/fleet-check/pack — $0.1
 
 Fleet Check pack — the standing form of Fleet Check: one $5.00 payment buys 100 sweep credits for ONE fixed fleet definition (resources and/or origins), good for 90 days. Sweeps run on your interval or on demand via POST /v1/fleet-check/run — one credit per sweep, never per route — diff against the last sweep, and POST failures and recoveries to your webhook (heartbeats optional); the latest table is free at POST /v1/fleet-check/status. Use this when your stalls should be watched continuously.
 

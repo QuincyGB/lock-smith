@@ -59,7 +59,7 @@ def _settled_client(monkeypatch):
 def _assert_block(body):
     block = body["verdict_row_loop"]
     offers = {o["id"]: o for o in block["offers"]}
-    assert offers["recheck_pack"]["price_usd"] == 1.0
+    assert offers["recheck_pack"]["price_usd"] == 0.10
     assert offers["fleet_pass"]["url"] == f"{LEDGER_URL}/v1/fleet-pass"
     # Static block only on this stall — no per-wallet section.
     assert "returning_payer" not in block
@@ -122,7 +122,7 @@ def test_unpaid_challenge_carries_no_block():
     assert "verdict_row_loop" not in r.text
     challenge = json.loads(base64.b64decode(r.headers["payment-required"]))
     accept = challenge["accepts"][0]
-    assert accept["amount"] == str(AUDIT_UNITS) == "500000"
+    assert accept["amount"] == str(AUDIT_UNITS) == "100000"
     assert accept["payTo"] == OWNER
 
 
@@ -162,5 +162,5 @@ def test_oversized_delivery_is_not_rewritten(monkeypatch):
 
 
 def test_price_units_derived_from_settings():
-    assert AUDIT_UNITS == 500000
+    assert AUDIT_UNITS == 100000
     assert main._price_units(main.settings.audit_price_usdc) == AUDIT_UNITS

@@ -207,8 +207,8 @@ _PASS_PATHS = {"/v1/audit"}
 
 
 def _price_units(price: str) -> int:
-    """USDC smallest units for a settings price string ("$0.50" ->
-    500000) — derived from the same string the x402 route charges,
+    """USDC smallest units for a settings price string ("$0.10" ->
+    100000) — derived from the same string the x402 route charges,
     never restated by hand."""
     return int(round(float(price.strip().lstrip("$")) * 1_000_000))
 
@@ -472,7 +472,7 @@ LANDING_HTML = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LockSmith — security audits for x402 endpoints</title>
-<meta name="description" content="Automated security checks for x402 endpoints — not a penetration test. Eight non-destructive, unpaid probes check the paywall, payment rejection, exposure surface, error hygiene, body caps, and discovery consistency. $0.50 per endpoint.">
+<meta name="description" content="Automated security checks for x402 endpoints — not a penetration test. Eight non-destructive, unpaid probes check the paywall, payment rejection, exposure surface, error hygiene, body caps, and discovery consistency. $0.10 per endpoint.">
 <style>
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
          max-width: 760px; margin: 40px auto; padding: 0 20px 60px;
@@ -505,7 +505,7 @@ keys: <em>payment is the authentication.</em></p>
 
 <p><span class="pill">Live on Base mainnet</span>
 <span class="pill">x402 v2 · exact scheme</span>
-<span class="pill">Audit $0.50 per endpoint</span>
+<span class="pill">Audit $0.10 per endpoint</span>
 <span class="pill">Unpaid probes only — never pays the target</span></p>
 
 <h2>The eight checks</h2>
@@ -532,7 +532,7 @@ target endpoint is probed unpaid and is never charged.</p>
 <h2>Endpoints</h2>
 <table>
   <tr><th>Route</th><th>Price</th><th>Purpose</th></tr>
-  <tr><td><code>POST /v1/audit</code></td><td>$0.50</td><td>Security-audit one x402 endpoint (paid, x402)</td></tr>
+  <tr><td><code>POST /v1/audit</code></td><td>$0.10</td><td>Security-audit one x402 endpoint (paid, x402)</td></tr>
   <tr><td><code>GET /quote</code></td><td>free</td><td>Prices, asset, network, pay-to wallet</td></tr>
   <tr><td><code>GET /.well-known/x402</code></td><td>free</td><td>Machine-readable service manifest</td></tr>
   <tr><td><code>GET /skill.md</code></td><td>free</td><td>Documentation written for agents</td></tr>

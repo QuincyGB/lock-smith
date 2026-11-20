@@ -32,9 +32,9 @@ def test_manifest_mirrors_challenge_terms(settings):
     manifest = x402_manifest(settings, BASE)
     assert manifest["payTo"] == OWNER
     (resource,) = [r for r in manifest["resources"] if r["resource"].endswith("/v1/audit")]
-    assert resource["price"] == "$0.50"
+    assert resource["price"] == "$0.10"
     (accept,) = resource["accepts"]
-    assert accept["amount"] == "500000"
+    assert accept["amount"] == "100000"
     assert accept["payTo"] == OWNER
     assert accept["network"] == "eip155:8453"
     assert accept["asset"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -150,7 +150,7 @@ def test_skill_md_lists_exactly_the_eight_checks(settings):
 def test_llms_txt(settings):
     text = llms_txt(settings, BASE)
     assert "/v1/audit" in text
-    assert "$0.50" in text
+    assert "$0.10" in text
 
 
 def test_openapi_carries_discovery_keys():
