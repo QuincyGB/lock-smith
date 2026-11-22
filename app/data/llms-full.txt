@@ -9,7 +9,7 @@ Payment terms (fleet-wide): x402, exact scheme, USDC. Fleet payTo: 0x097f9685D1e
 
 Worked examples in this file are FIXTURE values (the same worked examples this stall's OpenAPI document and free /sample payloads publish): real shapes, not live data. Buy the route for live results.
 
-## Priced routes on this stall (1)
+## Priced routes on this stall (3)
 
 ### POST https://lock-smith-production.up.railway.app/v1/audit — $0.10
 
@@ -106,6 +106,148 @@ Worked response example (fixture):
 ```
 
 Free sample of this route's response shape: https://lock-smith-production.up.railway.app/sample/audit (source: schema-example; labelled in-band sample=true, live=false).
+
+### POST https://lock-smith-production.up.railway.app/v1/approval-check — $0.03
+
+Read one Base wallet's risky ERC-20 token approvals: Approval events scanned over a stated recent block window, current allowances read on-chain, unlimited allowances and allowances to EOAs or unverified spender contracts flagged, with a plain risk summary and the coverage limits stated in every response.
+
+Price: $0.03 (30000 USDC atomic units on Base).
+Accepts: scheme exact, network eip155:8453, amount 30000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
+Tags: x402, security, approvals, wallet, base, due-diligence, allowances
+Input shape: type object; fields: wallet_address (string, required)
+Output shape: type object; fields: approvals (array, required), check_version (string, required), counts (object, required), coverage (object, required), evidence (object), network (string, required), next_check (object), ok (boolean, required), service (string, required), summary (string, required), verdict (string, required), wallet (string, required)
+
+Worked request example (fixture):
+```json
+{
+  "wallet_address": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F"
+}
+```
+
+Worked response example (fixture):
+```json
+{
+  "approvals": [],
+  "check_version": "1.0",
+  "counts": {
+    "high": 0,
+    "live": 0,
+    "low": 0,
+    "medium": 0,
+    "unlimited": 0
+  },
+  "coverage": {
+    "from_block": 39000001,
+    "limitations": "Approvals granted before the window with no in-window Approval event are not enumerated. Allowances are read at the latest block only.",
+    "log_chunks_scanned": 5,
+    "pairs_checked": 0,
+    "pairs_found": 0,
+    "pairs_truncated": false,
+    "scan_mode": "all_tokens",
+    "sources": [
+      "Base JSON-RPC eth_getLogs (ERC-20 Approval events, owner = wallet)",
+      "Base JSON-RPC eth_call allowance(owner, spender) reads at latest block",
+      "Base JSON-RPC eth_getCode for spender contract/EOA classification",
+      "Blockscout (Base) for spender identity and source-verification status"
+    ],
+    "to_block": 39050000,
+    "tokens_scanned": "all",
+    "window_blocks": 50000
+  },
+  "evidence": {
+    "input_hash": "1050b41abd9fc268f8a442877085edbaf4cdf13643f46e2e2acb6c2152ea1fdb",
+    "settlement_tx": null,
+    "timestamp": "2026-11-22T00:00:00Z"
+  },
+  "network": "eip155:8453",
+  "next_check": {
+    "name": "counterparty-report",
+    "path": "/v1/counterparty-report",
+    "price_usd": 0.1,
+    "service": "stall-row",
+    "url": "https://stall-row-production.up.railway.app/v1/counterparty-report"
+  },
+  "ok": true,
+  "service": "lock-smith",
+  "summary": "Scanned ERC-20 Approval events for this wallet over blocks 39000001-39050000 (50000 blocks, Base) and read the current allowance for each (token, spender) pair found: 0 live approval(s), 0 flagged. Coverage limit: approvals granted before this window with no in-window Approval event are not enumerated.",
+  "verdict": "NO_LIVE_APPROVALS_FOUND",
+  "wallet": "0x097f9685d1e0752bf8b02d61e5ce9be7ea0fba7f"
+}
+```
+
+### POST https://lock-smith-production.up.railway.app/v1/contract-check — $0.10
+
+Structural risk report for one Base contract: EIP-1967 proxy implementation/admin/beacon slots, owner presence, Blockscout source-verification status, and contract age, with a plain risk summary. Reports only signals actually read on-chain or from the explorer; it does not simulate trades or audit contract logic.
+
+Price: $0.1 (100000 USDC atomic units on Base).
+Accepts: scheme exact, network eip155:8453, amount 100000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
+Tags: x402, security, contracts, proxy, base, due-diligence, ownership
+Input shape: type object; fields: contract_address (string, required)
+Output shape: type object; fields: check_version (string, required), contract (string, required), coverage (object), evidence (object), is_contract (boolean, required), network (string, required), next_check (object), ok (boolean, required), risk_level (string), service (string, required), signals (object, required), summary (string, required), verdict (string, required)
+
+Worked request example (fixture):
+```json
+{
+  "contract_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+}
+```
+
+Worked response example (fixture):
+```json
+{
+  "check_version": "1.0",
+  "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  "coverage": {
+    "limitations": "Proxy detection reads the EIP-1967 slots and the explorer's proxy record; non-standard proxy patterns may not be detected.",
+    "sources": [
+      "Base JSON-RPC eth_getCode / eth_getStorageAt (EIP-1967 implementation, admin, beacon slots)",
+      "Base JSON-RPC eth_call owner()",
+      "Blockscout (Base) smart-contract record (verification, proxy type, implementations) and address record (creation transaction)"
+    ]
+  },
+  "evidence": {
+    "input_hash": "a55909c3069b0bd90f0021ba9d4c07752efbd1074e7c40da119082c80bf78421",
+    "settlement_tx": null,
+    "timestamp": "2026-11-22T00:00:00Z"
+  },
+  "is_contract": true,
+  "network": "eip155:8453",
+  "next_check": {
+    "name": "approval-check",
+    "path": "/v1/approval-check",
+    "price_usd": 0.03
+  },
+  "ok": true,
+  "risk_level": "medium",
+  "service": "lock-smith",
+  "signals": {
+    "age": {
+      "age_days": null,
+      "created_at": null,
+      "creation_transaction": null
+    },
+    "ownership": {
+      "admin": null,
+      "has_privileged_role": false,
+      "owner": null
+    },
+    "proxy": {
+      "admin": null,
+      "beacon": null,
+      "detected": true,
+      "explorer_proxy_type": "eip1967",
+      "implementation": null
+    },
+    "source": {
+      "explorer": "blockscout",
+      "name": "USD Coin",
+      "verified": true
+    }
+  },
+  "summary": "Risk signals read on-chain / from Blockscout: upgradeable proxy/admin structure \u2014 the code at this address can be replaced by whoever controls the admin/implementation path.",
+  "verdict": "FINDINGS"
+}
+```
 
 ## Pack mechanics (fleet prepaid packs, sold on StallRow)
 

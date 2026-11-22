@@ -1,0 +1,60 @@
+{
+  "check_version": "1.0",
+  "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  "coverage": {
+    "limitations": "Proxy detection reads the EIP-1967 slots and the explorer's proxy record; non-standard proxy patterns may not be detected.",
+    "sources": [
+      "Base JSON-RPC eth_getCode / eth_getStorageAt (EIP-1967 implementation, admin, beacon slots)",
+      "Base JSON-RPC eth_call owner()",
+      "Blockscout (Base) smart-contract record (verification, proxy type, implementations) and address record (creation transaction)"
+    ]
+  },
+  "evidence": {
+    "input_hash": "a55909c3069b0bd90f0021ba9d4c07752efbd1074e7c40da119082c80bf78421",
+    "settlement_tx": null,
+    "timestamp": "2026-11-22T00:00:00Z"
+  },
+  "is_contract": true,
+  "live": false,
+  "network": "eip155:8453",
+  "next_check": {
+    "name": "approval-check",
+    "path": "/v1/approval-check",
+    "price_usd": 0.03
+  },
+  "ok": true,
+  "recorded_at": null,
+  "risk_level": "medium",
+  "route": "/v1/contract-check",
+  "sample": true,
+  "sample_note": "Shape example built from this route's documented output example (validated against its outputSchema) with real fleet subjects \u2014 not a recorded result. Buy the route for live data.",
+  "service": "lock-smith",
+  "signals": {
+    "age": {
+      "age_days": null,
+      "created_at": null,
+      "creation_transaction": null
+    },
+    "ownership": {
+      "admin": null,
+      "has_privileged_role": false,
+      "owner": null
+    },
+    "proxy": {
+      "admin": null,
+      "beacon": null,
+      "detected": true,
+      "explorer_proxy_type": "eip1967",
+      "implementation": null
+    },
+    "source": {
+      "explorer": "blockscout",
+      "name": "USD Coin",
+      "verified": true
+    }
+  },
+  "source": "schema-example",
+  "summary": "Risk signals read on-chain / from Blockscout: upgradeable proxy/admin structure \u2014 the code at this address can be replaced by whoever controls the admin/implementation path.",
+  "target": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "verdict": "FINDINGS"
+}

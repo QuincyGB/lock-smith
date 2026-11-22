@@ -11,7 +11,7 @@
   "defaultOutputModes": [
     "application/json"
   ],
-  "description": "Automated security checks for x402 endpoints — not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.",
+  "description": "Automated security checks for x402 endpoints \u2014 not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.",
   "discovery_bundle": "https://lock-smith-production.up.railway.app/.well-known/verdict-row.json",
   "documentationUrl": "https://lock-smith-production.up.railway.app/llms.txt",
   "name": "LockSmith",
@@ -26,6 +26,16 @@
       "amount": "100000",
       "endpoint": "https://lock-smith-production.up.railway.app/v1/audit",
       "name": "/v1/audit"
+    },
+    {
+      "amount": "30000",
+      "endpoint": "https://lock-smith-production.up.railway.app/v1/approval-check",
+      "name": "/v1/approval-check"
+    },
+    {
+      "amount": "100000",
+      "endpoint": "https://lock-smith-production.up.railway.app/v1/contract-check",
+      "name": "/v1/contract-check"
     }
   ],
   "skills": [
@@ -60,6 +70,70 @@
         "preflight"
       ],
       "url": "https://lock-smith-production.up.railway.app/v1/audit"
+    },
+    {
+      "description": "Read one Base wallet's risky ERC-20 token approvals: Approval events scanned over a stated recent block window, current allowances read on-chain, unlimited allowances and allowances to EOAs or unverified spender contracts flagged, with a plain risk summary and the coverage limits stated in every response.",
+      "id": "v1-approval-check",
+      "inputModes": [
+        "application/json"
+      ],
+      "method": "POST",
+      "name": "Approval Check",
+      "outputModes": [
+        "application/json"
+      ],
+      "price": {
+        "amount_units": "30000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "display": "$0.03",
+        "network": "eip155:8453",
+        "payTo": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+        "protocol": "x402",
+        "scheme": "exact",
+        "usd": "0.03"
+      },
+      "tags": [
+        "x402",
+        "security",
+        "approvals",
+        "wallet",
+        "base",
+        "due-diligence",
+        "allowances"
+      ],
+      "url": "https://lock-smith-production.up.railway.app/v1/approval-check"
+    },
+    {
+      "description": "Structural risk report for one Base contract: EIP-1967 proxy implementation/admin/beacon slots, owner presence, Blockscout source-verification status, and contract age, with a plain risk summary. Reports only signals actually read on-chain or from the explorer; it does not simulate trades or audit contract logic.",
+      "id": "v1-contract-check",
+      "inputModes": [
+        "application/json"
+      ],
+      "method": "POST",
+      "name": "Contract Check",
+      "outputModes": [
+        "application/json"
+      ],
+      "price": {
+        "amount_units": "100000",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "display": "$0.10",
+        "network": "eip155:8453",
+        "payTo": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+        "protocol": "x402",
+        "scheme": "exact",
+        "usd": "0.1"
+      },
+      "tags": [
+        "x402",
+        "security",
+        "contracts",
+        "proxy",
+        "base",
+        "due-diligence",
+        "ownership"
+      ],
+      "url": "https://lock-smith-production.up.railway.app/v1/contract-check"
     }
   ],
   "url": "https://lock-smith-production.up.railway.app",

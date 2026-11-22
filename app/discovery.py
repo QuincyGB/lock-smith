@@ -15,6 +15,11 @@ import json
 
 from .audit import compactify
 from .config import Settings
+from .evidence import (
+    COUNTERPARTY_REPORT_PRICE_USD,
+    STALLROW_BASE_URL,
+    canonical_input_hash,
+)
 from .nudge import nudge_extension
 
 # x402 v2 "exact"-scheme asset for USDC on Base mainnet (6 decimals) — the
@@ -106,6 +111,25 @@ AUDIT_OUTPUT_SCHEMA = {
         "checks": {"type": "array", "items": _CHECK_SCHEMA},
         "probes_used": {"type": "integer"},
         "scope_note": {"type": "string"},
+        # Delivery extras on every paid response (W2, 2026-11-22).
+        "next_check": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "path": {"type": "string"},
+                "price_usd": {"type": "number"},
+                "service": {"type": "string"},
+                "url": {"type": "string"},
+            },
+        },
+        "evidence": {
+            "type": "object",
+            "properties": {
+                "settlement_tx": {"type": ["string", "null"]},
+                "input_hash": {"type": "string"},
+                "timestamp": {"type": "string"},
+            },
+        },
     },
 }
 
@@ -131,6 +155,294 @@ AUDIT_COMPACT_INPUT_EXAMPLE = {
     "mode": "compact",
 }
 AUDIT_COMPACT_OUTPUT_EXAMPLE = compactify(AUDIT_OUTPUT_EXAMPLE)
+
+
+# --- due-diligence routes (W2 build, 2026-11-22) ------------------------------
+# POST /v1/approval-check ($0.03) and POST /v1/contract-check ($0.10):
+# read-only on-chain checks over Base RPC + Blockscout. The examples
+# below are SCHEMA EXAMPLES (labelled as such in the free samples) —
+# shapes with fixture values, not recorded results.
+
+_NEXT_CHECK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "path": {"type": "string"},
+        "price_usd": {"type": "number"},
+        "service": {"type": "string"},
+        "url": {"type": "string"},
+    },
+}
+
+_EVIDENCE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "settlement_tx": {"type": ["string", "null"]},
+        "input_hash": {"type": "string"},
+        "timestamp": {"type": "string"},
+    },
+}
+
+APPROVAL_INPUT_SCHEMA = {
+    "type": "object",
+    "required": ["wallet_address"],
+    "properties": {
+        "wallet_address": {
+            "type": "string",
+            "description": "Base wallet address (0x-prefixed, 20 bytes) whose ERC-20 token approvals to check, e.g. 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+        },
+    },
+}
+
+APPROVAL_OUTPUT_SCHEMA = {
+    "type": "object",
+    "required": ["ok", "service", "check_version", "wallet", "network", "verdict", "summary", "coverage", "approvals", "counts"],
+    "properties": {
+        "ok": {"type": "boolean"},
+        "service": {"type": "string"},
+        "check_version": {"type": "string"},
+        "wallet": {"type": "string"},
+        "network": {"type": "string"},
+        "verdict": {"type": "string", "enum": ["HIGH_RISK", "FINDINGS", "LOW_RISK", "NO_LIVE_APPROVALS_FOUND"]},
+        "summary": {"type": "string"},
+        "coverage": {
+            "type": "object",
+            "properties": {
+                "sources": {"type": "array", "items": {"type": "string"}},
+                "window_blocks": {"type": "integer"},
+                "from_block": {"type": "integer"},
+                "to_block": {"type": "integer"},
+                "scan_mode": {"type": "string", "enum": ["all_tokens", "major_tokens"]},
+                "tokens_scanned": {"type": ["string", "array"]},
+                "log_chunks_scanned": {"type": "integer"},
+                "pairs_found": {"type": "integer"},
+                "pairs_checked": {"type": "integer"},
+                "pairs_truncated": {"type": "boolean"},
+                "limitations": {"type": "string"},
+            },
+        },
+        "approvals": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "token": {"type": "string"},
+                    "token_symbol": {"type": ["string", "null"]},
+                    "token_decimals": {"type": ["integer", "null"]},
+                    "spender": {"type": "string"},
+                    "spender_is_contract": {"type": "boolean"},
+                    "spender_name": {"type": ["string", "null"]},
+                    "spender_source_verified": {"type": ["boolean", "null"]},
+                    "allowance_raw": {"type": "string"},
+                    "unlimited": {"type": "boolean"},
+                    "risk_flags": {"type": "array", "items": {"type": "string"}},
+                    "risk_level": {"type": "string", "enum": ["high", "medium", "low"]},
+                },
+            },
+        },
+        "counts": {
+            "type": "object",
+            "properties": {
+                "live": {"type": "integer"},
+                "unlimited": {"type": "integer"},
+                "high": {"type": "integer"},
+                "medium": {"type": "integer"},
+                "low": {"type": "integer"},
+            },
+        },
+        "next_check": _NEXT_CHECK_SCHEMA,
+        "evidence": _EVIDENCE_SCHEMA,
+    },
+}
+
+APPROVAL_INPUT_EXAMPLE = {
+    "wallet_address": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+}
+
+APPROVAL_OUTPUT_EXAMPLE = {
+    "ok": True,
+    "service": "lock-smith",
+    "check_version": "1.0",
+    "wallet": "0x097f9685d1e0752bf8b02d61e5ce9be7ea0fba7f",
+    "network": "eip155:8453",
+    "verdict": "NO_LIVE_APPROVALS_FOUND",
+    "summary": (
+        "Scanned ERC-20 Approval events for this wallet over blocks "
+        "39000001-39050000 (50000 blocks, Base) and read the current "
+        "allowance for each (token, spender) pair found: 0 live "
+        "approval(s), 0 flagged. Coverage limit: approvals granted "
+        "before this window with no in-window Approval event are not "
+        "enumerated."
+    ),
+    "coverage": {
+        "sources": [
+            "Base JSON-RPC eth_getLogs (ERC-20 Approval events, owner = wallet)",
+            "Base JSON-RPC eth_call allowance(owner, spender) reads at latest block",
+            "Base JSON-RPC eth_getCode for spender contract/EOA classification",
+            "Blockscout (Base) for spender identity and source-verification status",
+        ],
+        "window_blocks": 50000,
+        "from_block": 39000001,
+        "to_block": 39050000,
+        "scan_mode": "all_tokens",
+        "tokens_scanned": "all",
+        "log_chunks_scanned": 5,
+        "pairs_found": 0,
+        "pairs_checked": 0,
+        "pairs_truncated": False,
+        "limitations": (
+            "Approvals granted before the window with no in-window Approval "
+            "event are not enumerated. Allowances are read at the latest "
+            "block only."
+        ),
+    },
+    "approvals": [],
+    "counts": {"live": 0, "unlimited": 0, "high": 0, "medium": 0, "low": 0},
+    "next_check": {
+        "name": "counterparty-report",
+        "service": "stall-row",
+        "path": "/v1/counterparty-report",
+        "url": f"{STALLROW_BASE_URL}/v1/counterparty-report",
+        "price_usd": COUNTERPARTY_REPORT_PRICE_USD,
+    },
+    "evidence": {
+        "settlement_tx": None,
+        "input_hash": canonical_input_hash(APPROVAL_INPUT_EXAMPLE),
+        "timestamp": "2026-11-22T00:00:00Z",
+    },
+}
+
+CONTRACT_INPUT_SCHEMA = {
+    "type": "object",
+    "required": ["contract_address"],
+    "properties": {
+        "contract_address": {
+            "type": "string",
+            "description": "Base contract address (0x-prefixed, 20 bytes) to assess, e.g. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        },
+    },
+}
+
+CONTRACT_OUTPUT_SCHEMA = {
+    "type": "object",
+    "required": ["ok", "service", "check_version", "contract", "network", "is_contract", "verdict", "summary", "signals"],
+    "properties": {
+        "ok": {"type": "boolean"},
+        "service": {"type": "string"},
+        "check_version": {"type": "string"},
+        "contract": {"type": "string"},
+        "network": {"type": "string"},
+        "is_contract": {"type": "boolean"},
+        "verdict": {"type": "string", "enum": ["HIGH_RISK", "FINDINGS", "LOW_RISK", "NOT_A_CONTRACT"]},
+        "risk_level": {"type": "string", "enum": ["high", "medium", "low"]},
+        "summary": {"type": "string"},
+        "signals": {
+            "type": "object",
+            "properties": {
+                "proxy": {
+                    "type": "object",
+                    "properties": {
+                        "detected": {"type": "boolean"},
+                        "implementation": {"type": ["string", "null"]},
+                        "admin": {"type": ["string", "null"]},
+                        "beacon": {"type": ["string", "null"]},
+                        "explorer_proxy_type": {"type": ["string", "null"]},
+                    },
+                },
+                "ownership": {
+                    "type": "object",
+                    "properties": {
+                        "owner": {"type": ["string", "null"]},
+                        "admin": {"type": ["string", "null"]},
+                        "has_privileged_role": {"type": "boolean"},
+                    },
+                },
+                "source": {
+                    "type": "object",
+                    "properties": {
+                        "verified": {"type": ["boolean", "null"]},
+                        "name": {"type": ["string", "null"]},
+                        "explorer": {"type": "string"},
+                    },
+                },
+                "age": {
+                    "type": "object",
+                    "properties": {
+                        "created_at": {"type": ["string", "null"]},
+                        "age_days": {"type": ["integer", "null"]},
+                        "creation_transaction": {"type": ["string", "null"]},
+                    },
+                },
+            },
+        },
+        "coverage": {"type": "object"},
+        "next_check": _NEXT_CHECK_SCHEMA,
+        "evidence": _EVIDENCE_SCHEMA,
+    },
+}
+
+CONTRACT_INPUT_EXAMPLE = {
+    "contract_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+}
+
+CONTRACT_OUTPUT_EXAMPLE = {
+    "ok": True,
+    "service": "lock-smith",
+    "check_version": "1.0",
+    "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "network": "eip155:8453",
+    "is_contract": True,
+    "verdict": "FINDINGS",
+    "risk_level": "medium",
+    "summary": (
+        "Risk signals read on-chain / from Blockscout: upgradeable "
+        "proxy/admin structure — the code at this address can be "
+        "replaced by whoever controls the admin/implementation path."
+    ),
+    "signals": {
+        "proxy": {
+            "detected": True,
+            "implementation": None,
+            "admin": None,
+            "beacon": None,
+            "explorer_proxy_type": "eip1967",
+        },
+        "ownership": {"owner": None, "admin": None, "has_privileged_role": False},
+        "source": {"verified": True, "name": "USD Coin", "explorer": "blockscout"},
+        "age": {"created_at": None, "age_days": None, "creation_transaction": None},
+    },
+    "coverage": {
+        "sources": [
+            "Base JSON-RPC eth_getCode / eth_getStorageAt (EIP-1967 implementation, admin, beacon slots)",
+            "Base JSON-RPC eth_call owner()",
+            "Blockscout (Base) smart-contract record (verification, proxy type, implementations) and address record (creation transaction)",
+        ],
+        "limitations": (
+            "Proxy detection reads the EIP-1967 slots and the explorer's "
+            "proxy record; non-standard proxy patterns may not be detected."
+        ),
+    },
+    "next_check": {"name": "approval-check", "path": "/v1/approval-check", "price_usd": 0.03},
+    "evidence": {
+        "settlement_tx": None,
+        "input_hash": canonical_input_hash(CONTRACT_INPUT_EXAMPLE),
+        "timestamp": "2026-11-22T00:00:00Z",
+    },
+}
+
+
+def approval_extension() -> dict:
+    return bazaar_extension(
+        APPROVAL_INPUT_SCHEMA, APPROVAL_OUTPUT_SCHEMA,
+        APPROVAL_INPUT_EXAMPLE, APPROVAL_OUTPUT_EXAMPLE,
+    )
+
+
+def contract_extension() -> dict:
+    return bazaar_extension(
+        CONTRACT_INPUT_SCHEMA, CONTRACT_OUTPUT_SCHEMA,
+        CONTRACT_INPUT_EXAMPLE, CONTRACT_OUTPUT_EXAMPLE,
+    )
 
 
 def bazaar_extension(input_schema: dict, output_schema: dict,
@@ -209,16 +521,16 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
         "x402Version": 2,
         "service": settings.service_name,
         "description": (
-            "Automated security checks for x402 endpoints — not a "
-            "penetration test. POST /v1/audit "
-            f"({settings.audit_price_usdc}) runs eight non-destructive, "
-            "unpaid probes against one paid route: paywall presence, "
-            "challenge sanity, garbage and forged payment rejection, "
-            "exposure surface, error hygiene, body-size cap, and "
-            "discovery consistency. Returns SECURE / FINDINGS / EXPOSED "
-            "with per-check results and a fix note per finding. Use "
-            "this when you operate an x402 route and want its locks "
-            "checked before an attacker rattles them."
+            "LockSmith sells read-only checking for the agent economy "
+            "— automated security checks, not a penetration test. "
+            f"POST /v1/audit ({settings.audit_price_usdc}) runs eight "
+            "non-destructive, unpaid probes against one x402 endpoint. "
+            f"POST /v1/approval-check ({settings.approval_price_usdc}) "
+            "reads one Base wallet's risky ERC-20 approvals over a "
+            f"stated recent block window. POST /v1/contract-check "
+            f"({settings.contract_price_usdc}) reports one Base "
+            "contract's proxy, ownership, source-verification and age "
+            "signals, stating what was actually read."
         ),
         "network": settings.network,
         "payTo": settings.pay_to,
@@ -259,6 +571,57 @@ def x402_manifest(settings: Settings, base_url: str) -> dict:
                 "outputSchema": {
                     **AUDIT_OUTPUT_SCHEMA,
                     "example": AUDIT_COMPACT_OUTPUT_EXAMPLE,
+                },
+            },
+            {
+                "resource": f"{base_url}/v1/approval-check",
+                "method": "POST",
+                "price": settings.approval_price_usdc,
+                "scheme": "exact",
+                "mimeType": "application/json",
+                "description": (
+                    "Read one Base wallet's risky ERC-20 token approvals: "
+                    "Approval events scanned over a stated recent block "
+                    "window, current allowances read on-chain, unlimited "
+                    "allowances and allowances to EOAs or unverified "
+                    "spender contracts flagged, with a plain risk summary "
+                    "and the coverage limits stated in every response."
+                ),
+                "tags": ["x402", "security", "approvals", "wallet", "base", "due-diligence", "allowances"],
+                "accepts": accepts(settings.approval_price_usdc),
+                "inputSchema": {
+                    **APPROVAL_INPUT_SCHEMA,
+                    "example": APPROVAL_INPUT_EXAMPLE,
+                },
+                "outputSchema": {
+                    **APPROVAL_OUTPUT_SCHEMA,
+                    "example": APPROVAL_OUTPUT_EXAMPLE,
+                },
+            },
+            {
+                "resource": f"{base_url}/v1/contract-check",
+                "method": "POST",
+                "price": settings.contract_price_usdc,
+                "scheme": "exact",
+                "mimeType": "application/json",
+                "description": (
+                    "Structural risk report for one Base contract: "
+                    "EIP-1967 proxy implementation/admin/beacon slots, "
+                    "owner presence, Blockscout source-verification "
+                    "status, and contract age, with a plain risk summary. "
+                    "Reports only signals actually read on-chain or from "
+                    "the explorer; it does not simulate trades or audit "
+                    "contract logic."
+                ),
+                "tags": ["x402", "security", "contracts", "proxy", "base", "due-diligence", "ownership"],
+                "accepts": accepts(settings.contract_price_usdc),
+                "inputSchema": {
+                    **CONTRACT_INPUT_SCHEMA,
+                    "example": CONTRACT_INPUT_EXAMPLE,
+                },
+                "outputSchema": {
+                    **CONTRACT_OUTPUT_SCHEMA,
+                    "example": CONTRACT_OUTPUT_EXAMPLE,
                 },
             },
             {
@@ -349,6 +712,13 @@ def verdict_row_extension(base_url: str) -> dict:
 
 
 
+_CARD_INPUT_EXAMPLES = {
+    "/v1/audit": AUDIT_COMPACT_INPUT_EXAMPLE,
+    "/v1/approval-check": APPROVAL_INPUT_EXAMPLE,
+    "/v1/contract-check": CONTRACT_INPUT_EXAMPLE,
+}
+
+
 def _skill_name(path: str) -> str:
     return path.rstrip("/").rsplit("/", 1)[-1].replace("-", " ").title()
 
@@ -376,8 +746,8 @@ def agent_card(settings: Settings, base_url: str) -> dict:
                 # the StallRow card shape. The audit skill's example is
                 # the same input the Bazaar extension / manifest publish.
                 "examples": (
-                    [json.dumps(AUDIT_COMPACT_INPUT_EXAMPLE)]
-                    if path == "/v1/audit"
+                    [json.dumps(_CARD_INPUT_EXAMPLES[path])]
+                    if path in _CARD_INPUT_EXAMPLES
                     else []
                 ),
                 "inputModes": ["application/json"],
@@ -469,6 +839,32 @@ audit answers 502 and the payment does not settle.
    `/openapi.json`) must advertise the audited route with terms
    matching the live challenge.
 
+## Due-diligence routes (Base, read-only)
+
+`POST {base_url}/v1/approval-check` — {settings.approval_price_usdc} USDC
+on Base. Body: `{{"wallet_address": "0x..."}}`. Scans ERC-20 Approval
+events for the wallet over a recent block window (default 50,000
+blocks; the exact from/to blocks are stated in the response's
+`coverage`), reads the current `allowance(owner, spender)` for each
+(token, spender) pair found, and flags unlimited allowances plus
+allowances to EOAs or spender contracts whose source is not verified
+on Blockscout. Approvals granted before the window with no in-window
+Approval event are NOT enumerated — the response says so.
+
+`POST {base_url}/v1/contract-check` — {settings.contract_price_usdc}
+USDC on Base. Body: `{{"contract_address": "0x..."}}`. Reports the
+signals actually read: EIP-1967 implementation/admin/beacon slots
+(proxy + upgradeability), `owner()` presence, Blockscout
+source-verification status, and contract age, with a plain risk
+summary. It does not simulate buys/sells and cannot prove or rule
+out honeypot transfer logic.
+
+Every paid response (all three routes) carries `next_check` (one
+suggested follow-up route with its price) and `evidence`
+(`settlement_tx` when a settlement receipt exists, the sha256
+`input_hash` of the canonical request input, and the delivery
+`timestamp`).
+
 ## Honesty
 
 A check that could not run is reported `not_tested` with a reason —
@@ -503,6 +899,8 @@ def llms_txt(settings: Settings, base_url: str) -> str:
 > Automated security checks for x402 endpoints — not a penetration test. Eight non-destructive, unpaid probes per audit; SECURE / FINDINGS / EXPOSED verdict with fix notes.
 
 - POST {base_url}/v1/audit ({settings.audit_price_usdc} USDC on Base, x402 v2): audit one endpoint URL {{"endpoint_url": "..."}}. Optional "mode": "compact" returns the same audit with headline pass summaries (findings keep full detail).
+- POST {base_url}/v1/approval-check ({settings.approval_price_usdc} USDC on Base, x402 v2): check one wallet's risky ERC-20 approvals {{"wallet_address": "0x..."}} — Approval events over a stated recent block window (default 50,000 blocks) + current allowance reads; unlimited allowances and EOAs/unverified spenders flagged; pre-window approvals are not enumerated.
+- POST {base_url}/v1/contract-check ({settings.contract_price_usdc} USDC on Base, x402 v2): structural risk report for one contract {{"contract_address": "0x..."}} — EIP-1967 proxy slots, owner presence, Blockscout source verification, contract age. Every paid response carries next_check + evidence (settlement_tx / input_hash / timestamp).
 - GET {base_url}/quote: free price quote.
 - GET {base_url}/.well-known/x402: service manifest.
 - GET {base_url}/.well-known/agent-card.json: A2A agent card (skills mirror the priced routes).

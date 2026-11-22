@@ -1,0 +1,54 @@
+{
+  "approvals": [],
+  "check_version": "1.0",
+  "counts": {
+    "high": 0,
+    "live": 0,
+    "low": 0,
+    "medium": 0,
+    "unlimited": 0
+  },
+  "coverage": {
+    "from_block": 39000001,
+    "limitations": "Approvals granted before the window with no in-window Approval event are not enumerated. Allowances are read at the latest block only.",
+    "log_chunks_scanned": 5,
+    "pairs_checked": 0,
+    "pairs_found": 0,
+    "pairs_truncated": false,
+    "scan_mode": "all_tokens",
+    "sources": [
+      "Base JSON-RPC eth_getLogs (ERC-20 Approval events, owner = wallet)",
+      "Base JSON-RPC eth_call allowance(owner, spender) reads at latest block",
+      "Base JSON-RPC eth_getCode for spender contract/EOA classification",
+      "Blockscout (Base) for spender identity and source-verification status"
+    ],
+    "to_block": 39050000,
+    "tokens_scanned": "all",
+    "window_blocks": 50000
+  },
+  "evidence": {
+    "input_hash": "1050b41abd9fc268f8a442877085edbaf4cdf13643f46e2e2acb6c2152ea1fdb",
+    "settlement_tx": null,
+    "timestamp": "2026-11-22T00:00:00Z"
+  },
+  "live": false,
+  "network": "eip155:8453",
+  "next_check": {
+    "name": "counterparty-report",
+    "path": "/v1/counterparty-report",
+    "price_usd": 0.1,
+    "service": "stall-row",
+    "url": "https://stall-row-production.up.railway.app/v1/counterparty-report"
+  },
+  "ok": true,
+  "recorded_at": null,
+  "route": "/v1/approval-check",
+  "sample": true,
+  "sample_note": "Shape example built from this route's documented output example (validated against its outputSchema) with real fleet subjects \u2014 not a recorded result. Buy the route for live data.",
+  "service": "lock-smith",
+  "source": "schema-example",
+  "summary": "Scanned ERC-20 Approval events for this wallet over blocks 39000001-39050000 (50000 blocks, Base) and read the current allowance for each (token, spender) pair found: 0 live approval(s), 0 flagged. Coverage limit: approvals granted before this window with no in-window Approval event are not enumerated.",
+  "target": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+  "verdict": "NO_LIVE_APPROVALS_FOUND",
+  "wallet": "0x097f9685d1e0752bf8b02d61e5ce9be7ea0fba7f"
+}

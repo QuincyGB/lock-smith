@@ -15,10 +15,18 @@ from fastapi.testclient import TestClient
 
 import app.main as main
 from app.openapi_examples import WORKED_EXAMPLES
-from app.discovery import AUDIT_OUTPUT_SCHEMA
+from app.discovery import (
+    APPROVAL_OUTPUT_SCHEMA,
+    AUDIT_OUTPUT_SCHEMA,
+    CONTRACT_OUTPUT_SCHEMA,
+)
 
-PRICED_ROUTES = {"/v1/audit"}
-OUTPUT_SCHEMAS = {"/v1/audit": AUDIT_OUTPUT_SCHEMA}
+PRICED_ROUTES = {"/v1/audit", "/v1/approval-check", "/v1/contract-check"}
+OUTPUT_SCHEMAS = {
+    "/v1/audit": AUDIT_OUTPUT_SCHEMA,
+    "/v1/approval-check": APPROVAL_OUTPUT_SCHEMA,
+    "/v1/contract-check": CONTRACT_OUTPUT_SCHEMA,
+}
 
 _DOC = None
 

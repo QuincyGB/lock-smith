@@ -35,10 +35,18 @@ def manifest() -> dict:
 def load_sample(slug: str) -> dict:
     return json.loads((DATA / "samples" / f"{slug}.json").read_text())
 
-from app.discovery import AUDIT_OUTPUT_SCHEMA
+from app.discovery import (
+    APPROVAL_OUTPUT_SCHEMA,
+    AUDIT_OUTPUT_SCHEMA,
+    CONTRACT_OUTPUT_SCHEMA,
+)
 
-PRICED_ROUTES = {"/v1/audit"}
-SCHEMA_PROPS = {"/v1/audit": set(AUDIT_OUTPUT_SCHEMA.get("properties") or {})}
+PRICED_ROUTES = {"/v1/audit", "/v1/approval-check", "/v1/contract-check"}
+SCHEMA_PROPS = {
+    "/v1/audit": set(AUDIT_OUTPUT_SCHEMA.get("properties") or {}),
+    "/v1/approval-check": set(APPROVAL_OUTPUT_SCHEMA.get("properties") or {}),
+    "/v1/contract-check": set(CONTRACT_OUTPUT_SCHEMA.get("properties") or {}),
+}
 RECORDED_EXTRA_OK = {}
 SCHEMA_EXAMPLE_EXTRA_OK = {}
 

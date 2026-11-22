@@ -9,7 +9,11 @@ from fastapi.testclient import TestClient
 
 import app.main as main
 
-PAID = {"/v1/audit": main.settings.audit_price_usdc}
+PAID = {
+    "/v1/audit": main.settings.audit_price_usdc,
+    "/v1/approval-check": main.settings.approval_price_usdc,
+    "/v1/contract-check": main.settings.contract_price_usdc,
+}
 
 _DOC = None
 

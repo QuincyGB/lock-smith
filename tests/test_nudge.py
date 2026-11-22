@@ -131,7 +131,10 @@ def test_manifest_publishes_inbox_and_route_count_holds(client):
     assert ext["endpoint"].endswith("/v1/nudge")
     assert ext["spec"].endswith("nudge-inbox.md")
     paid = [r for r in body["resources"] if r["method"] == "POST"]
-    assert len(paid) == 1  # inbound mail is free; the count must not move
+    # Inbound mail is free and adds no priced route: the count is
+    # exactly the stall's priced routes (3 since the W2 build added
+    # /v1/approval-check + /v1/contract-check, 2026-11-22).
+    assert len(paid) == 3
     assert paid[0]["resource"].endswith("/v1/audit")
     assert not any("nudge" in r["resource"] for r in body["resources"])
     assert "POST /v1/nudge" not in main.routes

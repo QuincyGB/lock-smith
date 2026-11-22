@@ -41,15 +41,26 @@ from x402.http.middleware import fastapi_payment_middleware
 from x402.mechanisms.evm.exact.server import ExactEvmScheme
 from x402.server import x402ResourceServer
 
+import httpx
+
 from . import nudge as nudge_svc
 from .audit import AuditUnavailable, run_audit
+from .chain import ChainUnavailable
 from .config import load_settings
+from .duediligence import clients_for, run_approval_check, run_contract_check
+from .evidence import (
+    COUNTERPARTY_REPORT_PRICE_USD,
+    STALLROW_BASE_URL,
+    make_evidence,
+)
 from .nudge import NudgeStore, resolve_nudge_path
 from .probe import USER_AGENT, fetch as _probe_fetch, shared_client
 from .discovery import (
     OWNERSHIP_PROOFS,
     agent_card,
+    approval_extension,
     audit_extension,
+    contract_extension,
     llms_txt,
     skill_md,
     x402_manifest,
@@ -108,21 +119,56 @@ AUDIT_DESCRIPTION = (
 
 _TAGS = ["x402", "security", "audit", "agents"]
 
-routes = {
-    "POST /v1/audit": RouteConfig(
+APPROVAL_DESCRIPTION = (
+    "Reads one Base wallet's risky ERC-20 token approvals: scans "
+    "Approval events over a stated recent block window (default "
+    "50,000 blocks), reads the current allowance for each pair found, "
+    "and flags unlimited allowances and allowances to EOAs or "
+    "spender contracts whose source is not verified on Blockscout. "
+    "Returns per-approval risk flags, counts, and a plain summary. "
+    "Read-only. Approvals granted before the window with no "
+    "in-window event are not enumerated — the response states its "
+    "coverage."
+)
+
+CONTRACT_DESCRIPTION = (
+    "Structural risk report for one Base contract: EIP-1967 proxy "
+    "implementation/admin/beacon slots, owner() presence, Blockscout "
+    "source-verification status, and contract age, with a plain risk "
+    "summary. Read-only: it reports only signals actually read "
+    "on-chain or from the explorer. It does not simulate trades and "
+    "does not audit contract logic, so it cannot prove or rule out "
+    "honeypot transfer rules."
+)
+
+
+def _route_config(price: str, description: str, extension: dict) -> RouteConfig:
+    return RouteConfig(
         accepts=[
             PaymentOption(
                 scheme="exact",
                 pay_to=settings.pay_to,
-                price=settings.audit_price_usdc,
+                price=price,
                 network=settings.network,
             )
         ],
-        description=AUDIT_DESCRIPTION,
+        description=description,
         mime_type="application/json",
         service_name=settings.service_name,  # ≤32 chars, forwarded to Bazaar
         tags=_TAGS,
-        extensions={"bazaar": audit_extension()},
+        extensions={"bazaar": extension},
+    )
+
+
+routes = {
+    "POST /v1/audit": _route_config(
+        settings.audit_price_usdc, AUDIT_DESCRIPTION, audit_extension()
+    ),
+    "POST /v1/approval-check": _route_config(
+        settings.approval_price_usdc, APPROVAL_DESCRIPTION, approval_extension()
+    ),
+    "POST /v1/contract-check": _route_config(
+        settings.contract_price_usdc, CONTRACT_DESCRIPTION, contract_extension()
     ),
 }
 
@@ -152,15 +198,20 @@ def _openapi_with_ownership_proofs():
     # AgentCash canonical discovery (W8 spec 3b): paid operations carry
     # x-payment-info + a declared 402 response, derived from settings --
     # the same price / network / payTo the route config above charges.
+    def _pay_terms(price: str) -> dict:
+        return {
+            "amount": price.strip().lstrip("$"),
+            "protocols": [
+                {"x402": {"scheme": "exact", "network": settings.network, "payTo": settings.pay_to}}
+            ],
+        }
+
     add_payment_info(
         schema,
         {
-            "/v1/audit": {
-                "amount": settings.audit_price_usdc.strip().lstrip("$"),
-                "protocols": [
-                    {"x402": {"scheme": "exact", "network": settings.network, "payTo": settings.pay_to}}
-                ],
-            }
+            "/v1/audit": _pay_terms(settings.audit_price_usdc),
+            "/v1/approval-check": _pay_terms(settings.approval_price_usdc),
+            "/v1/contract-check": _pay_terms(settings.contract_price_usdc),
         },
         guidance=(
             f"{settings.service_name} sells pay-per-call x402 endpoint security "
@@ -230,7 +281,7 @@ async def _unhandled_error(request: Request, exc: Exception):
     )
 
 
-_PASS_PATHS = {"/v1/audit"}
+_PASS_PATHS = {"/v1/audit", "/v1/approval-check", "/v1/contract-check"}
 
 
 def _price_units(price: str) -> int:
@@ -242,7 +293,11 @@ def _price_units(price: str) -> int:
 
 # This stall's priced routes and their enforced amounts, derived
 # from settings (the values the RouteConfigs above charge).
-PRICE_UNITS = {"/v1/audit": _price_units(settings.audit_price_usdc)}
+PRICE_UNITS = {
+    "/v1/audit": _price_units(settings.audit_price_usdc),
+    "/v1/approval-check": _price_units(settings.approval_price_usdc),
+    "/v1/contract-check": _price_units(settings.contract_price_usdc),
+}
 
 
 # --- loop block delivery layer (Next-20 #1) --------------------------------
@@ -393,6 +448,17 @@ async def _attach_loop_offer(request: Request, response):
         # Not a delivery dict, or a 2xx error report: no block.
         return _rebuild_response(body, response, content_type)
     loop_offer_svc.attach_loop_offer(data)
+    # Evidence completion (W2, 2026-11-22): the handler emitted the
+    # evidence block with settlement_tx=None — the settlement receipt
+    # only exists now, on this response (the same payment-response
+    # header the delivery ledger reads). Fill it when a per-call
+    # settlement receipt is present; Fleet-Pass deliveries have no
+    # per-call transaction and keep the explicit null.
+    evidence = data.get("evidence")
+    if isinstance(evidence, dict) and evidence.get("settlement_tx") is None:
+        receipt = delivery_ledger_svc.extract_receipt(response)
+        if receipt and receipt.get("transaction"):
+            evidence["settlement_tx"] = receipt["transaction"]
     return _rebuild_response(
         json.dumps(data).encode(), response, "application/json"
     )
@@ -560,6 +626,8 @@ target endpoint is probed unpaid and is never charged.</p>
 <table>
   <tr><th>Route</th><th>Price</th><th>Purpose</th></tr>
   <tr><td><code>POST /v1/audit</code></td><td>$0.10</td><td>Security-audit one x402 endpoint (paid, x402)</td></tr>
+  <tr><td><code>POST /v1/approval-check</code></td><td>$0.03</td><td>Risky ERC-20 approval check for one Base wallet (paid, x402)</td></tr>
+  <tr><td><code>POST /v1/contract-check</code></td><td>$0.10</td><td>Proxy/ownership/source risk report for one Base contract (paid, x402)</td></tr>
   <tr><td><code>GET /quote</code></td><td>free</td><td>Prices, asset, network, pay-to wallet</td></tr>
   <tr><td><code>GET /.well-known/x402</code></td><td>free</td><td>Machine-readable service manifest</td></tr>
   <tr><td><code>GET /skill.md</code></td><td>free</td><td>Documentation written for agents</td></tr>
@@ -605,6 +673,8 @@ async def quote():
         "service": settings.service_name,
         "endpoints": {
             "/v1/audit": {"price": settings.audit_price_usdc, "purpose": "security audit of one x402 endpoint"},
+            "/v1/approval-check": {"price": settings.approval_price_usdc, "purpose": "risky ERC-20 approval check for one Base wallet"},
+            "/v1/contract-check": {"price": settings.contract_price_usdc, "purpose": "proxy/ownership/source risk report for one Base contract"},
         },
         "asset": "USDC",
         "network": settings.network,
@@ -867,12 +937,51 @@ async def nudge_inbox_read(
     }
 
 
+# --- delivery extras: next_check + evidence (W2, 2026-11-22) ------------------
+# Every paid response on this stall carries both blocks. Handlers add
+# them here (input_hash + timestamp are handler-time facts);
+# settlement_tx is filled by the delivery layer above once the x402
+# SDK's settlement receipt exists (see _attach_loop_offer).
+
+
+def _next_check(route_path: str) -> dict:
+    """One suggested follow-up route per paid route, priced from the
+    same settings the routes charge (the StallRow suggestion mirrors
+    stall-row's PRICE_UNITS — see app/evidence.py)."""
+    if route_path == "/v1/audit":
+        return {
+            "name": "approval-check",
+            "path": "/v1/approval-check",
+            "price_usd": float(settings.approval_price_usdc.strip().lstrip("$")),
+        }
+    if route_path == "/v1/approval-check":
+        return {
+            "name": "counterparty-report",
+            "service": "stall-row",
+            "path": "/v1/counterparty-report",
+            "url": f"{STALLROW_BASE_URL}/v1/counterparty-report",
+            "price_usd": COUNTERPARTY_REPORT_PRICE_USD,
+        }
+    return {
+        "name": "approval-check",
+        "path": "/v1/approval-check",
+        "price_usd": float(settings.approval_price_usdc.strip().lstrip("$")),
+    }
+
+
+def _finalize(result: dict, route_path: str, canonical_input: dict) -> dict:
+    """Attach next_check + evidence to a successful paid delivery."""
+    result["next_check"] = _next_check(route_path)
+    result["evidence"] = make_evidence(canonical_input)
+    return result
+
+
 @app.post("/v1/audit")
 async def audit(req: AuditRequest):
     """Paid endpoint — unreachable until the x402 middleware verifies payment."""
     endpoint_url = req.endpoint_url.strip()
     try:
-        return await run_audit(endpoint_url, timeout=settings.fetch_timeout_s, mode=req.mode)
+        result = await run_audit(endpoint_url, timeout=settings.fetch_timeout_s, mode=req.mode)
     except ValueError as e:
         # Invalid input (bad URL / non-public target). 422 never settles.
         return JSONResponse({"error": str(e)}, status_code=422)
@@ -882,6 +991,73 @@ async def audit(req: AuditRequest):
     except Exception:  # noqa: BLE001 — never leak tracebacks to callers
         log.exception("audit failed for %s", endpoint_url)
         return JSONResponse({"error": "audit failed"}, status_code=502)
+    return _finalize(result, "/v1/audit", {"endpoint_url": endpoint_url, "mode": req.mode})
+
+
+# --- due-diligence routes (W2 build, 2026-11-22) ------------------------------
+
+_ADDRESS_PATTERN = r"^0x[0-9a-fA-F]{40}$"
+
+
+class ApprovalCheckRequest(BaseModel):
+    wallet_address: str = Field(
+        pattern=_ADDRESS_PATTERN,
+        description="Base wallet address (0x-prefixed, 20 bytes) whose ERC-20 token approvals to check",
+    )
+
+
+class ContractCheckRequest(BaseModel):
+    contract_address: str = Field(
+        pattern=_ADDRESS_PATTERN,
+        description="Base contract address (0x-prefixed, 20 bytes) to assess for proxy/ownership/source risk",
+    )
+
+
+@app.post("/v1/approval-check")
+async def approval_check(req: ApprovalCheckRequest):
+    """Paid endpoint — unreachable until the x402 middleware verifies payment."""
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as http:
+            rpc, blockscout, rpc_fallback = clients_for(settings, http)
+            result = await run_approval_check(
+                req.wallet_address,
+                rpc=rpc,
+                blockscout=blockscout,
+                window_blocks=settings.approval_window_blocks,
+                rpc_fallback=rpc_fallback,
+            )
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=422)
+    except ChainUnavailable as e:
+        # Chain/explorer read failure. 502 never settles.
+        return JSONResponse({"error": f"approval check unavailable: {e}"}, status_code=502)
+    except Exception:  # noqa: BLE001 — never leak tracebacks to callers
+        log.exception("approval check failed for %s", req.wallet_address)
+        return JSONResponse({"error": "approval check failed"}, status_code=502)
+    return _finalize(
+        result, "/v1/approval-check", {"wallet_address": req.wallet_address.lower()}
+    )
+
+
+@app.post("/v1/contract-check")
+async def contract_check(req: ContractCheckRequest):
+    """Paid endpoint — unreachable until the x402 middleware verifies payment."""
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as http:
+            rpc, blockscout, _rpc_fallback = clients_for(settings, http)
+            result = await run_contract_check(
+                req.contract_address, rpc=rpc, blockscout=blockscout
+            )
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=422)
+    except ChainUnavailable as e:
+        return JSONResponse({"error": f"contract check unavailable: {e}"}, status_code=502)
+    except Exception:  # noqa: BLE001 — never leak tracebacks to callers
+        log.exception("contract check failed for %s", req.contract_address)
+        return JSONResponse({"error": "contract check failed"}, status_code=502)
+    return _finalize(
+        result, "/v1/contract-check", {"contract_address": req.contract_address.lower()}
+    )
 
 
 # --- sandbox twins (Next-20 #19) -------------------------------------------

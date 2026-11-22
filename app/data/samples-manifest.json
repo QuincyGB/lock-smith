@@ -12,6 +12,22 @@
       "target": "https://token-verdict-production.up.railway.app/v1/verdict",
       "recorded_at": null,
       "pulled_from": "app/discovery.py output example for this route (schema-validated)"
+    },
+    {
+      "route": "/v1/approval-check",
+      "slug": "approval-check",
+      "source": "schema-example",
+      "target": "0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F",
+      "recorded_at": null,
+      "pulled_from": "app/discovery.py output example for this route (schema-validated)"
+    },
+    {
+      "route": "/v1/contract-check",
+      "slug": "contract-check",
+      "source": "schema-example",
+      "target": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "recorded_at": null,
+      "pulled_from": "app/discovery.py output example for this route (schema-validated)"
     }
   ]
 }

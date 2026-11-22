@@ -19,10 +19,19 @@ from __future__ import annotations
 
 import copy
 
-from .discovery import AUDIT_INPUT_EXAMPLE, AUDIT_OUTPUT_EXAMPLE
+from .discovery import (
+    APPROVAL_INPUT_EXAMPLE,
+    APPROVAL_OUTPUT_EXAMPLE,
+    AUDIT_INPUT_EXAMPLE,
+    AUDIT_OUTPUT_EXAMPLE,
+    CONTRACT_INPUT_EXAMPLE,
+    CONTRACT_OUTPUT_EXAMPLE,
+)
 
 WORKED_EXAMPLES: dict[str, tuple[dict, dict]] = {
     "/v1/audit": (AUDIT_INPUT_EXAMPLE, AUDIT_OUTPUT_EXAMPLE),
+    "/v1/approval-check": (APPROVAL_INPUT_EXAMPLE, APPROVAL_OUTPUT_EXAMPLE),
+    "/v1/contract-check": (CONTRACT_INPUT_EXAMPLE, CONTRACT_OUTPUT_EXAMPLE),
 }
 
 FIXTURE_SUMMARY = (
