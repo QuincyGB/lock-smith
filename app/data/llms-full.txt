@@ -1,9 +1,9 @@
 # lock-smith — llms-full.txt (Verdict Row x402 fleet)
 
-Generated: 2026-11-07T15:40:29Z by Ren, Verdict Row Patrol — patrol@verdictrow.com from the fleet's canonical route registry and this stall's served discovery + OpenAPI documents (llms_full.py, fleet-checker).
+Generated: 2026-11-22T14:41:13Z by Ren, Verdict Row Patrol — patrol@verdictrow.com from the fleet's canonical route registry and this stall's served discovery + OpenAPI documents (llms_full.py, fleet-checker).
 Contact: patrol@verdictrow.com
 
-Automated security checks for x402 endpoints — not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.
+LockSmith sells read-only checking for the agent economy — automated security checks, not a penetration test. POST /v1/audit ($0.10) runs eight non-destructive, unpaid probes against one x402 endpoint. POST /v1/approval-check ($0.03) reads one Base wallet's risky ERC-20 approvals over a stated recent block window. POST /v1/contract-check ($0.10) reports one Base contract's proxy, ownership, source-verification and age signals, stating what was actually read.
 
 Payment terms (fleet-wide): x402, exact scheme, USDC. Fleet payTo: 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F. Base network: eip155:8453; Base USDC asset: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. No API key and no signup — payment is the authentication. An unpaid call to a priced route returns HTTP 402 with the payment challenge; fields a source cannot supply come back marked unknown, never invented, and an upstream failure returns 502 so the payment does not settle.
 
@@ -15,11 +15,11 @@ Worked examples in this file are FIXTURE values (the same worked examples this s
 
 Security-audit one x402 endpoint: eight automated, non-destructive, unpaid checks (paywall, challenge sanity, garbage/forged payment rejection, exposure surface, error hygiene, body cap, discovery consistency) with a SECURE / FINDINGS / EXPOSED verdict and a fix note per finding. Automated security checks, not a penetration test.
 
-Price: $0.1 (100000 USDC atomic units on Base).
+Price: $0.10 (100000 USDC atomic units on Base).
 Accepts: scheme exact, network eip155:8453, amount 100000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
 Tags: x402, security, audit, agents, security-audit, endpoint-verification, preflight
 Input shape: type object; fields: endpoint_url (string, required), mode (string)
-Output shape: type object; fields: audit_version (string, required), checks (array, required), mode (string), ok (boolean, required), probes_used (integer, required), scope_note (string, required), service (string, required), summary (object, required), target (string, required), terms_observed (object, required), verdict (string, required)
+Output shape: type object; fields: audit_version (string, required), checks (array, required), evidence (object), mode (string), next_check (object), ok (boolean, required), probes_used (integer, required), scope_note (string, required), service (string, required), summary (object, required), target (string, required), terms_observed (object, required), verdict (string, required)
 
 Worked request example (fixture):
 ```json
@@ -175,11 +175,13 @@ Worked response example (fixture):
 }
 ```
 
+Free sample of this route's response shape: https://lock-smith-production.up.railway.app/sample/approval-check (source: schema-example; labelled in-band sample=true, live=false).
+
 ### POST https://lock-smith-production.up.railway.app/v1/contract-check — $0.10
 
 Structural risk report for one Base contract: EIP-1967 proxy implementation/admin/beacon slots, owner presence, Blockscout source-verification status, and contract age, with a plain risk summary. Reports only signals actually read on-chain or from the explorer; it does not simulate trades or audit contract logic.
 
-Price: $0.1 (100000 USDC atomic units on Base).
+Price: $0.10 (100000 USDC atomic units on Base).
 Accepts: scheme exact, network eip155:8453, amount 100000 units, asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, payTo 0x097f9685D1e0752bF8B02d61E5Ce9be7eA0FBA7F, maxTimeoutSeconds 300
 Tags: x402, security, contracts, proxy, base, due-diligence, ownership
 Input shape: type object; fields: contract_address (string, required)
@@ -249,21 +251,23 @@ Worked response example (fixture):
 }
 ```
 
+Free sample of this route's response shape: https://lock-smith-production.up.railway.app/sample/contract-check (source: schema-example; labelled in-band sample=true, live=false).
+
 ## Pack mechanics (fleet prepaid packs, sold on StallRow)
 
 Packs and passes are prepaid balances that replace per-call payment on their routes. Each entry below is a priced route in the canonical registry; its stated price and mechanics are the registry's own record of that route.
 
 ### POST https://stall-row-production.up.railway.app/v1/recheck/pack — $0.1
 
-Recheck watch pack — the default for monitoring loops: one $1.00 payment buys 250 change-checks for ONE endpoint ($0.004 per check instead of $0.005), good for 90 days. Returns an unguessable pack id — spend credits via POST /v1/recheck (body pack_id or X-Recheck-Pack header); read the balance free at POST /v1/recheck/pack-balance, and an exhausted pack returns 402 rather than charging per call. Use this when anything checks the same endpoint more than ~3 times a week.
+Recheck watch pack — the default for monitoring loops: one $0.10 payment buys 250 change-checks for ONE endpoint ($0.0004 per check instead of $0.005), good for 90 days. Returns an unguessable pack id — spend credits via POST /v1/recheck (body pack_id or X-Recheck-Pack header); read the balance free at POST /v1/recheck/pack-balance, and an exhausted pack returns 402 rather than charging per call. Use this when anything checks the same endpoint more than ~3 times a week.
 
 ### POST https://stall-row-production.up.railway.app/v1/toolkit/pack — $0.1
 
-Toolkit Pack — one $1.00 payment buys 125 prepaid calls ($0.008 each instead of the $0.01 singles) spendable on Sign Reader, Score Book, Guard, Tube Search, Page to Markdown, or Video Details in any mix, good for 90 days. Spend via pack_id (body or X-Toolkit-Pack header) on those routes; read the balance free at POST /v1/toolkit/pack-balance. An exhausted pack returns 402 rather than charging per call. Use this when your agent runs these tools regularly.
+Toolkit Pack — one $0.10 payment buys 125 prepaid calls ($0.0008 each instead of the $0.01 singles) spendable on Sign Reader, Score Book, Guard, Tube Search, Page to Markdown, or Video Details in any mix, good for 90 days. Spend via pack_id (body or X-Toolkit-Pack header) on those routes; read the balance free at POST /v1/toolkit/pack-balance. An exhausted pack returns 402 rather than charging per call. Use this when your agent runs these tools regularly.
 
 ### POST https://stall-row-production.up.railway.app/v1/fleet-check/pack — $0.1
 
-Fleet Check pack — the standing form of Fleet Check: one $5.00 payment buys 100 sweep credits for ONE fixed fleet definition (resources and/or origins), good for 90 days. Sweeps run on your interval or on demand via POST /v1/fleet-check/run — one credit per sweep, never per route — diff against the last sweep, and POST failures and recoveries to your webhook (heartbeats optional); the latest table is free at POST /v1/fleet-check/status. Use this when your stalls should be watched continuously.
+Fleet Check pack — the standing form of Fleet Check: one $0.10 payment buys 100 sweep credits for ONE fixed fleet definition, good for 90 days. Sweeps run on your interval or on demand via POST /v1/fleet-check/run — one credit per sweep, with no per-route charge — diff against the last sweep, and POST failures and recoveries to your webhook (heartbeats optional); the latest table is free at POST /v1/fleet-check/status. Use this when your stalls should be watched continuously.
 
 ### POST https://stall-row-production.up.railway.app/v1/fleet-pass — $5
 

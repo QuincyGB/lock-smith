@@ -11,7 +11,7 @@
   "defaultOutputModes": [
     "application/json"
   ],
-  "description": "Automated security checks for x402 endpoints \u2014 not a penetration test. POST /v1/audit ($0.50) runs eight non-destructive, unpaid probes against one paid route: paywall presence, challenge sanity, garbage and forged payment rejection, exposure surface, error hygiene, body-size cap, and discovery consistency. Returns SECURE / FINDINGS / EXPOSED with per-check results and a fix note per finding. Use this when you operate an x402 route and want its locks checked before an attacker rattles them.",
+  "description": "LockSmith sells read-only checking for the agent economy — automated security checks, not a penetration test. POST /v1/audit ($0.10) runs eight non-destructive, unpaid probes against one x402 endpoint. POST /v1/approval-check ($0.03) reads one Base wallet's risky ERC-20 approvals over a stated recent block window. POST /v1/contract-check ($0.10) reports one Base contract's proxy, ownership, source-verification and age signals, stating what was actually read.",
   "discovery_bundle": "https://lock-smith-production.up.railway.app/.well-known/verdict-row.json",
   "documentationUrl": "https://lock-smith-production.up.railway.app/llms.txt",
   "name": "LockSmith",
