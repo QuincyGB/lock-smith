@@ -57,7 +57,7 @@ from .discovery import (
 from . import samples as samples_svc
 from . import loop_offer as loop_offer_svc
 from . import delivery_ledger as delivery_ledger_svc
-from .openapi_examples import add_worked_examples
+from .openapi_examples import add_payment_info, add_worked_examples
 
 log = logging.getLogger("lock-smith")
 logging.basicConfig(level=logging.INFO)
@@ -130,10 +130,12 @@ routes = {
 app = FastAPI(title="lock-smith", version="1.0.0")
 
 # Public contact for the OpenAPI info block. x402scan / tryponcho read
-# info.contact.email for merchant pages and owner contact; the owner
-# approved publishing this address in the discovery documents
-# (2026-10-26).
-CONTACT = {"name": "Verdict Row", "email": "quincyga.brown@gmail.com"}
+# info.contact.email for merchant pages and owner contact. Per the W8
+# spec section 3b (2026-11-20) the fleet publishes ONE uniform contact
+# in its OpenAPI documents -- patrol@verdictrow.com, the same address
+# the agent card and manifest already publish; this supersedes the
+# personal address published here on 2026-10-26.
+CONTACT = {"name": "Verdict Row", "email": "patrol@verdictrow.com"}
 
 
 def _openapi_with_ownership_proofs():
@@ -147,6 +149,31 @@ def _openapi_with_ownership_proofs():
         title=app.title, version=app.version, routes=app.routes, contact=CONTACT
     )
     add_worked_examples(schema)
+    # AgentCash canonical discovery (W8 spec 3b): paid operations carry
+    # x-payment-info + a declared 402 response, derived from settings --
+    # the same price / network / payTo the route config above charges.
+    add_payment_info(
+        schema,
+        {
+            "/v1/audit": {
+                "amount": settings.audit_price_usdc.strip().lstrip("$"),
+                "protocols": [
+                    {"x402": {"scheme": "exact", "network": settings.network, "payTo": settings.pay_to}}
+                ],
+            }
+        },
+        guidance=(
+            f"{settings.service_name} sells pay-per-call x402 endpoint security "
+            f"audits over the x402 protocol (v2, exact scheme, USDC on "
+            f"{settings.network}, payTo {settings.pay_to}). Paid operations are "
+            "marked with x-payment-info; call one without payment to receive "
+            "the HTTP 402 challenge, pay it with any x402 v2 client, and retry "
+            "with the payment proof -- no account or API key. Prices in "
+            "x-payment-info are decimal USD and match the live 402 challenge. "
+            "Free discovery: GET /.well-known/x402, /quote and /health. "
+            "Contact: patrol@verdictrow.com."
+        ),
+    )
     schema["x-discovery"] = {"ownershipProofs": OWNERSHIP_PROOFS}
     schema["x-agentcash-provenance"] = {"ownershipProofs": OWNERSHIP_PROOFS}
     app.openapi_schema = schema
